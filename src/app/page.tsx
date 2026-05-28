@@ -37,9 +37,7 @@ export default function HomePage() {
       <nav className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600">
-              <span className="text-xs font-bold text-white">AO</span>
-            </div>
+            <img src="/logo.png" alt="AdOps Cockpit" className="h-7 w-7 object-contain rounded-lg" />
             <span className="text-sm font-semibold text-zinc-100">AdOps Cockpit</span>
           </div>
           <div className="flex items-center gap-3">
@@ -171,9 +169,7 @@ export default function HomePage() {
       <footer className="border-t border-zinc-800/60">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600">
-              <span className="text-xs font-bold text-white">AO</span>
-            </div>
+            <img src="/logo.png" alt="AdOps Cockpit" className="h-6 w-6 object-contain rounded-md" />
             <span className="text-sm font-semibold text-zinc-400">AdOps Cockpit</span>
           </div>
           <div className="flex gap-6 text-xs text-zinc-600">

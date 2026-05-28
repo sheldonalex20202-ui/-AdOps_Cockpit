@@ -2,6 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import { NavClient } from "./NavClient";
+import logoImg from "../assets/images/logo.png";
 
 const nav = [
   { page: "launch",        label: "Автозалив",    icon: "launch" },
@@ -28,7 +29,7 @@ export function AppShell({ children, currentPage, onNavigate, user, onLogout }: 
       <aside className="flex w-56 shrink-0 flex-col border-r border-stroke bg-panel">
         {/* Brand */}
         <div className="flex h-11 shrink-0 items-center gap-2 border-b border-stroke px-4">
-          <div className="h-5 w-5 rounded bg-brand shrink-0" />
+          <img src={logoImg} alt="AdOps Cockpit" className="h-5 w-5 object-contain shrink-0" />
           <span className="text-[13px] font-semibold text-ink">AdOps Cockpit</span>
         </div>
 

@@ -15,8 +15,12 @@ dist/
 build/
 coverage/
 
-# Wails build output
+# Wails build output (keep icon assets tracked)
+!adops-desktop/build/
 adops-desktop/build/bin/
+!adops-desktop/build/appicon.png
+!adops-desktop/build/windows/
+!adops-desktop/build/windows/icon.ico
 adops-desktop/frontend/dist/
 adops-desktop/frontend/node_modules/
 

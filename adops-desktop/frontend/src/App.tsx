@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import * as api from "./lib/api";
 import type { UpdateInfo } from "./lib/api";
-import { ArrowUpCircle, ExternalLink, Loader2, MonitorSmartphone, X } from "lucide-react";
+import { ArrowUpCircle, ExternalLink, Loader2, X } from "lucide-react";
+import logoImg from "./assets/images/logo.png";
 
 import { LaunchClient }       from "./pages/launch/LaunchClient";
 import { AccountsClient }     from "./pages/accounts/AccountsClient";
@@ -22,8 +23,8 @@ function AuthLayout({ title, subtitle, children }: { title: string; subtitle: st
     <div className="flex min-h-screen items-center justify-center bg-surface">
       <div className="w-full max-w-sm rounded-xl border border-stroke bg-card p-8 shadow-card">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand text-brand-fg">
-            <MonitorSmartphone size={17} />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card">
+            <img src={logoImg} alt="AdOps Cockpit" className="h-6 w-6 object-contain" />
           </div>
           <div>
             <div className="text-[15px] font-semibold text-ink">{title}</div>
