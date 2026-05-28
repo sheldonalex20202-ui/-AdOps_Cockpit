@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const repoAPI = "https://api.github.com/repos/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest"
-
 type ReleaseInfo struct {
 	Available bool   `json:"available"`
 	Version   string `json:"version"`
@@ -17,47 +15,41 @@ type ReleaseInfo struct {
 	Notes     string `json:"notes"`
 }
 
-type githubRelease struct {
-	TagName string `json:"tag_name"`
-	HTMLURL string `json:"html_url"`
-	Body    string `json:"body"`
+type versionManifest struct {
+	Version       string `json:"version"`
+	WindowsURL    string `json:"windowsUrl"`
+	MacosArmURL   string `json:"macosArmUrl"`
+	MacosIntelURL string `json:"macosIntelUrl"`
 }
 
-// Check fetches the latest GitHub release and compares it with currentVersion.
+// Check fetches /version.json from the web server and compares it with currentVersion.
 // Returns empty ReleaseInfo (Available=false) for dev builds or on network error.
-func Check(currentVersion string) (ReleaseInfo, error) {
+func Check(webURL, currentVersion string) (ReleaseInfo, error) {
 	if currentVersion == "" || currentVersion == "dev" {
 		return ReleaseInfo{}, nil
 	}
 
+	endpoint := strings.TrimRight(webURL, "/") + "/version.json"
 	client := &http.Client{Timeout: 8 * time.Second}
-	req, err := http.NewRequest("GET", repoAPI, nil)
-	if err != nil {
-		return ReleaseInfo{}, err
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "AdOpsCockpit/"+currentVersion)
-
-	resp, err := client.Do(req)
+	resp, err := client.Get(endpoint)
 	if err != nil {
 		return ReleaseInfo{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return ReleaseInfo{}, fmt.Errorf("github api: %d", resp.StatusCode)
+		return ReleaseInfo{}, fmt.Errorf("version check: http %d", resp.StatusCode)
 	}
 
-	var rel githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
+	var manifest versionManifest
+	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
 		return ReleaseInfo{}, err
 	}
 
 	return ReleaseInfo{
-		Available: isNewer(rel.TagName, currentVersion),
-		Version:   rel.TagName,
-		URL:       rel.HTMLURL,
-		Notes:     rel.Body,
+		Available: isNewer(manifest.Version, currentVersion),
+		Version:   manifest.Version,
+		URL:       manifest.WindowsURL,
 	}, nil
 }
 

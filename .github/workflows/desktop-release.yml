@@ -111,6 +111,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
@@ -132,3 +137,19 @@ jobs:
             release/windows/AdOpsCockpit-windows-installer.exe
             release/macos/AdOpsCockpit-macos-intel.dmg
             release/macos/AdOpsCockpit-macos-arm64.dmg
+
+      - name: Update version.json
+        run: |
+          cat > public/version.json <<EOF
+          {
+            "version": "${{ github.ref_name }}",
+            "windowsUrl": "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe",
+            "macosArmUrl": "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg",
+            "macosIntelUrl": "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-intel.dmg"
+          }
+          EOF
+          git config user.email "ci@github.com"
+          git config user.name "GitHub Actions"
+          git add public/version.json
+          git commit -m "chore: bump version.json to ${{ github.ref_name }} [skip ci]"
+          git push origin HEAD:master

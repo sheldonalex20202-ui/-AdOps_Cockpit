@@ -743,7 +743,7 @@ type UpdateInfo struct {
 }
 
 func (a *App) CheckForUpdate() UpdateInfo {
-	info, err := updater.Check(Version)
+	info, err := updater.Check(webURL(), Version)
 	if err != nil {
 		return UpdateInfo{}
 	}
