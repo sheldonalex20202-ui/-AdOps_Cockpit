@@ -5,7 +5,7 @@ import type { UpdateInfo } from "./lib/api";
 import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
 import logoImg from "./assets/images/logo.png";
 // @ts-ignore
-import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { EventsOn } from "../wailsjs/runtime/runtime";
 
 import { LaunchClient }       from "./pages/launch/LaunchClient";
 import { AccountsClient }     from "./pages/accounts/AccountsClient";
