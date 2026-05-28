@@ -1,0 +1,68 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light theme ─────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --surface:   #f5f5f5;
+  --panel:     #ebebeb;
+  --card:      #ffffff;
+  --raised:    #e0e0e0;
+  --selected:  #dbeafe;
+  --stroke:    #d4d4d4;
+  --ink:       #1e1e1e;
+  --muted:     #6b6b6b;
+  --brand:     #2563eb;
+  --brand-dim: #1d4ed8;
+  --brand-fg:  #ffffff;
+  --danger:    #dc2626;
+  --success:   #16a34a;
+  --warn:      #d97706;
+}
+
+/* ── Dark theme (follows Windows system setting) ─────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface:   #1e1e1e;
+    --panel:     #252526;
+    --card:      #2d2d30;
+    --raised:    #37373d;
+    --selected:  #1d3a5e;
+    --stroke:    #3e3e42;
+    --ink:       #d4d4d4;
+    --muted:     #8b8b8b;
+    --brand:     #4d9ef6;
+    --brand-dim: #3b82f6;
+    --brand-fg:  #ffffff;
+    --danger:    #f87171;
+    --success:   #4ade80;
+    --warn:      #fbbf24;
+  }
+}
+
+/* ── Base reset ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: "Geist Variable", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; }
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 6px; height: 6px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--stroke); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+* { scrollbar-width: thin; scrollbar-color: var(--stroke) transparent; }

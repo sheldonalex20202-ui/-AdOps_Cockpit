@@ -1,0 +1,215 @@
+{
+  "main": {
+    "id": "6856bf1842b3d385",
+    "type": "split",
+    "children": [
+      {
+        "id": "7bc3972f196259d4",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ca37ab4185aa5ec8",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Граф"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "4d9275f6a2b7e29b",
+    "type": "split",
+    "children": [
+      {
+        "id": "21c29fbe35affdaa",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "68218f6f77720378",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "e6ac27b344dce54d",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "5857c4422f9167d1",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "1e0a264ba3bf11fb",
+    "type": "split",
+    "children": [
+      {
+        "id": "e39ef4616ef19f2f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4cae435bc42e968a",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки"
+            }
+          },
+          {
+            "id": "c53a97c5caeeb854",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки"
+            }
+          },
+          {
+            "id": "74995fb6d8acc170",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "d869a2560e0a3e26",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "8fc8d7293a57b117",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false,
+      "obsidian-importer:Open Importer": false
+    }
+  },
+  "active": "ca37ab4185aa5ec8",
+  "lastOpenFiles": [
+    "13 Knowledge Base Methodology.md",
+    "Templates/Process Template.md",
+    "Templates",
+    "Processes/15 Release and Verification Process.md",
+    "Processes/14 Error Handling Process.md",
+    "Processes/13 Entitlements Process.md",
+    "Processes/12 Audit Logging Process.md",
+    "Processes/11 Launch Job Process.md",
+    "Processes/10 Headline Set Process.md",
+    "Processes/09 Creative Management Process.md",
+    "Processes/08 Health Check Process.md",
+    "Processes/07 Pool Management Process.md",
+    "Processes/06 Account Management Process.md",
+    "Processes/00 Process Map.md",
+    "Processes/05 Stripe Webhook Process.md",
+    "Processes/04 Subscription Checkout Process.md",
+    "Processes/02 Web Login and Registration Process.md",
+    "Processes/03 Desktop Auth Callback Process.md",
+    "Processes/01 Desktop Startup Process.md",
+    "Processes",
+    "00 Home.md",
+    "03 Architecture Map.md",
+    "02 Product Methodology.md",
+    "01 System Overview.md",
+    "Без названия.base",
+    "99 Glossary.md",
+    "12 Roadmap.md",
+    "11 Security Notes.md",
+    "10 Development Workflow.md",
+    "Без названия 1",
+    "Без названия.canvas",
+    "Без названия"
+  ]
+}
