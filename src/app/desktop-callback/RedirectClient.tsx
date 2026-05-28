@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { CheckCircle, CreditCard, MonitorSmartphone } from "lucide-react";
 
 interface Props {
@@ -18,15 +17,6 @@ interface Props {
 }
 
 export function RedirectClient({ redirectUrl, error, account }: Props) {
-  useEffect(() => {
-    if (!redirectUrl) return;
-    // Navigate directly to the local callback server.
-    // Direct navigation works reliably for http://127.0.0.1 from HTTPS pages;
-    // fetch() is blocked by Chrome's Private Network Access policy.
-    const t = setTimeout(() => window.location.replace(redirectUrl), 1200);
-    return () => clearTimeout(t);
-  }, [redirectUrl]);
-
   if (error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-950 px-4 text-center">
@@ -44,13 +34,29 @@ export function RedirectClient({ redirectUrl, error, account }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-10">
+      {/*
+        Hidden iframe pings the local Go callback server (http://127.0.0.1:PORT/callback?token=...).
+        This avoids navigating away from the page (window.location) while also bypassing
+        Chrome's Private Network Access block on fetch() from HTTPS to localhost.
+        The Go server responds to the PNA OPTIONS preflight with
+        Access-Control-Allow-Private-Network: true, so the iframe load is allowed.
+      */}
+      {redirectUrl && (
+        <iframe
+          src={redirectUrl}
+          title="auth-callback"
+          style={{ display: "none", width: 0, height: 0, border: "none" }}
+          aria-hidden
+        />
+      )}
+
       <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center shadow-2xl">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400">
           <CheckCircle size={34} />
         </div>
         <h1 className="text-xl font-semibold text-zinc-100">Авторизация успешна</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Проверьте аккаунт и вернитесь в приложение, когда будете готовы.
+          Приложение авторизовано. Можно закрыть эту вкладку.
         </p>
 
         {account && (
@@ -82,7 +88,7 @@ export function RedirectClient({ redirectUrl, error, account }: Props) {
               href={redirectUrl}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
             >
-              Вернуться в приложение
+              Открыть приложение вручную
             </a>
           )}
           {account && (
