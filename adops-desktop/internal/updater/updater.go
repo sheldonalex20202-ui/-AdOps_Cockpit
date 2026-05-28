@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	goruntime "runtime"
 	"strings"
 	"time"
 )
@@ -46,10 +47,19 @@ func Check(webURL, currentVersion string) (ReleaseInfo, error) {
 		return ReleaseInfo{}, err
 	}
 
+	url := manifest.WindowsURL
+	if goruntime.GOOS == "darwin" {
+		if goruntime.GOARCH == "arm64" {
+			url = manifest.MacosArmURL
+		} else {
+			url = manifest.MacosIntelURL
+		}
+	}
+
 	return ReleaseInfo{
 		Available: isNewer(manifest.Version, currentVersion),
 		Version:   manifest.Version,
-		URL:       manifest.WindowsURL,
+		URL:       url,
 	}, nil
 }
 

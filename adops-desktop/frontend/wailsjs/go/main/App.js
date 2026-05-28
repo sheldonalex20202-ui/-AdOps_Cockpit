@@ -153,3 +153,7 @@ export function OpenReleasePage() {
 export function GetVersion() {
   return window['go']['main']['App']['GetVersion']();
 }
+
+export function StartUpdate(arg1) {
+  return window['go']['main']['App']['StartUpdate'](arg1);
+}

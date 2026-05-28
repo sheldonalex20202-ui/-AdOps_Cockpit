@@ -752,6 +752,32 @@ func (a *App) CheckForUpdate() UpdateInfo {
 	return UpdateInfo(info)
 }
 
+// StartUpdate downloads and installs the update silently.
+// Progress is reported via Wails events:
+//   "update:progress"   → {done, total int64}
+//   "update:installing" → nil
+//   "update:error"      → string
+func (a *App) StartUpdate(url string) {
+	go func() {
+		err := updater.Install(
+			url,
+			func(done, total int64) {
+				runtime.EventsEmit(a.ctx, "update:progress", map[string]int64{"done": done, "total": total})
+			},
+			func() {
+				runtime.EventsEmit(a.ctx, "update:installing", nil)
+			},
+		)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "update:error", err.Error())
+			return
+		}
+		// Give frontend time to show "installing" state before we quit
+		time.Sleep(600 * time.Millisecond)
+		runtime.Quit(a.ctx)
+	}()
+}
+
 func (a *App) OpenReleasePage() {
 	if a.ctx != nil {
 		runtime.BrowserOpenURL(a.ctx, "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest")

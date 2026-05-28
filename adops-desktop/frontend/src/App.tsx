@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import * as api from "./lib/api";
 import type { UpdateInfo } from "./lib/api";
-import { ArrowUpCircle, ExternalLink, Loader2, X } from "lucide-react";
+import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
 import logoImg from "./assets/images/logo.png";
+// @ts-ignore
+import { EventsOn } from "../../wailsjs/runtime/runtime";
 
 import { LaunchClient }       from "./pages/launch/LaunchClient";
 import { AccountsClient }     from "./pages/accounts/AccountsClient";
@@ -115,8 +117,31 @@ export default function App() {
   const [page, setPage] = useState("launch");
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [version, setVersion] = useState("");
+  const [dlDone, setDlDone] = useState(0);
+  const [dlTotal, setDlTotal] = useState(0);
+  const [updatePhase, setUpdatePhase] = useState<"downloading" | "installing" | "error">("downloading");
 
   useEffect(() => { void boot(); }, []);
+
+  // Wails event listeners for update progress
+  useEffect(() => {
+    const offProgress = EventsOn("update:progress", (data: { done: number; total: number }) => {
+      setDlDone(data.done);
+      setDlTotal(data.total);
+      setUpdatePhase("downloading");
+    });
+    const offInstalling = EventsOn("update:installing", () => setUpdatePhase("installing"));
+    const offError = EventsOn("update:error", () => setUpdatePhase("error"));
+    return () => { offProgress(); offInstalling(); offError(); };
+  }, []);
+
+  // Auto-start update immediately when one is detected
+  useEffect(() => {
+    if (update) {
+      setUpdatePhase("downloading");
+      api.startUpdate(update.url).catch(() => setUpdatePhase("error"));
+    }
+  }, [update]);
 
   async function boot() {
     const [res, ver] = await Promise.all([api.getCurrentUser(), api.getVersion().catch(() => "")]);
@@ -147,19 +172,36 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col">
       {update && (
-        <div className="flex items-center justify-between bg-blue-600 px-4 py-2 text-[12px] text-white">
-          <span className="flex items-center gap-2">
-            <ArrowUpCircle size={14} />
-            Доступна новая версия <strong>{update.version}</strong>
-          </span>
-          <div className="flex items-center gap-4">
-            <button onClick={() => api.openReleasePage()} className="font-semibold underline hover:no-underline">
-              Скачать
-            </button>
-            <button onClick={() => setUpdate(null)} className="opacity-70 hover:opacity-100">
-              <X size={14} />
-            </button>
-          </div>
+        <div className="flex items-center gap-3 bg-blue-600 px-4 py-2 text-[12px] text-white">
+          <ArrowUpCircle size={14} className="shrink-0" />
+          {updatePhase === "downloading" && (
+            <>
+              <span className="shrink-0">Обновление {update.version} — загрузка...</span>
+              {dlTotal > 0 && (
+                <>
+                  <div className="h-1 w-32 shrink-0 overflow-hidden rounded bg-blue-400">
+                    <div
+                      className="h-full bg-white transition-all duration-200"
+                      style={{ width: `${Math.round((dlDone / dlTotal) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-blue-200">{Math.round((dlDone / dlTotal) * 100)}%</span>
+                </>
+              )}
+              {dlTotal <= 0 && <Loader2 size={12} className="animate-spin" />}
+            </>
+          )}
+          {updatePhase === "installing" && (
+            <span>Устанавливается... приложение перезапустится автоматически</span>
+          )}
+          {updatePhase === "error" && (
+            <>
+              <span>Ошибка автообновления.</span>
+              <button onClick={() => api.openReleasePage()} className="underline hover:no-underline">
+                Скачать вручную
+              </button>
+            </>
+          )}
         </div>
       )}
       <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout} version={version}>

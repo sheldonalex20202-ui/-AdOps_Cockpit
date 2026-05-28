@@ -79,3 +79,5 @@ export function CheckForUpdate():Promise<any>;
 export function OpenReleasePage():Promise<void>;
 
 export function GetVersion():Promise<string>;
+
+export function StartUpdate(arg1:string):Promise<void>;
