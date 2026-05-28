@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { CheckCircle, CreditCard, MonitorSmartphone } from "lucide-react";
 
 interface Props {
@@ -18,17 +18,14 @@ interface Props {
 }
 
 export function RedirectClient({ redirectUrl, error, account }: Props) {
-  const [notified, setNotified] = useState(false);
-
   useEffect(() => {
-    if (!redirectUrl || notified) return;
-    setNotified(true);
-
-    fetch(redirectUrl, { mode: "no-cors", cache: "no-store" }).catch(() => {
-      const img = new Image();
-      img.src = redirectUrl;
-    });
-  }, [redirectUrl, notified]);
+    if (!redirectUrl) return;
+    // Navigate directly to the local callback server.
+    // Direct navigation works reliably for http://127.0.0.1 from HTTPS pages;
+    // fetch() is blocked by Chrome's Private Network Access policy.
+    const t = setTimeout(() => window.location.replace(redirectUrl), 1200);
+    return () => clearTimeout(t);
+  }, [redirectUrl]);
 
   if (error) {
     return (
@@ -85,7 +82,7 @@ export function RedirectClient({ redirectUrl, error, account }: Props) {
               href={redirectUrl}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
             >
-              {notified ? "Открыть приложение" : "Вернуться в приложение"}
+              Вернуться в приложение
             </a>
           )}
           {account && (
