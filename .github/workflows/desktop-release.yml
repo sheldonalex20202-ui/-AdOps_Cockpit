@@ -1,6 +1,5 @@
 name: Desktop Release
 
-# Запускается при пуше тега вида v1.0.0
 on:
   push:
     tags:
@@ -39,11 +38,17 @@ jobs:
         working-directory: adops-desktop
         run: wails build -platform windows/amd64 -nsis -ldflags "-X main.Version=${{ github.ref_name }}"
 
+      - name: Rename installer to stable filename
+        shell: pwsh
+        run: |
+          $src = Get-ChildItem "adops-desktop/build/bin/*.exe" | Select-Object -First 1
+          Rename-Item $src.FullName "AdOpsCockpit-windows-installer.exe"
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: adops-desktop/build/bin/*.exe
+          path: adops-desktop/build/bin/AdOpsCockpit-windows-installer.exe
 
   build-macos:
     runs-on: macos-latest
@@ -84,7 +89,7 @@ jobs:
             -volname "AdOps Cockpit" \
             -srcfolder "adops-desktop/build/bin/adops-desktop.app" \
             -ov -format UDZO \
-            "adops-desktop/build/bin/AdOpsCockpit-${{ github.ref_name }}-intel.dmg"
+            "adops-desktop/build/bin/AdOpsCockpit-macos-intel.dmg"
 
       - name: Create DMG (Apple Silicon)
         run: |
@@ -92,13 +97,13 @@ jobs:
             -volname "AdOps Cockpit" \
             -srcfolder "adops-desktop/build/bin/adops-desktop-arm64.app" \
             -ov -format UDZO \
-            "adops-desktop/build/bin/AdOpsCockpit-${{ github.ref_name }}-arm64.dmg" || true
+            "adops-desktop/build/bin/AdOpsCockpit-macos-arm64.dmg" || true
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: adops-desktop/build/bin/*.dmg
+          path: adops-desktop/build/bin/AdOpsCockpit-macos-*.dmg
 
   release:
     needs: [build-windows, build-macos]
@@ -124,5 +129,6 @@ jobs:
           name: AdOps Cockpit ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            release/windows/*.exe
-            release/macos/*.dmg
+            release/windows/AdOpsCockpit-windows-installer.exe
+            release/macos/AdOpsCockpit-macos-intel.dmg
+            release/macos/AdOpsCockpit-macos-arm64.dmg

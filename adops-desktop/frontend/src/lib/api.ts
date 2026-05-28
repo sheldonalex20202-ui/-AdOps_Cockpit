@@ -16,6 +16,8 @@ export const startLoginFlow = () => Go.StartLoginFlow();
 export const logout = (): Promise<void> => Go.Logout();
 export const getCurrentUser = () => Go.GetCurrentUser();
 export const openBillingPage = () => Go.OpenBillingPage();
+export const checkForUpdate = (): Promise<UpdateInfo> => Go.CheckForUpdate();
+export const openReleasePage = (): Promise<void> => Go.OpenReleasePage();
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
 
@@ -115,6 +117,13 @@ export interface HeadlineSetInput {
   name: string;
   geo?: string;
   headlinesJson: Record<string, string>;
+}
+
+export interface UpdateInfo {
+  available: boolean;
+  version: string;
+  url: string;
+  notes: string;
 }
 
 export interface LaunchInput {

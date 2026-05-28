@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import * as api from "./lib/api";
-import { ExternalLink, Loader2, MonitorSmartphone } from "lucide-react";
+import type { UpdateInfo } from "./lib/api";
+import { ArrowUpCircle, ExternalLink, Loader2, MonitorSmartphone, X } from "lucide-react";
 
 import { LaunchClient }       from "./pages/launch/LaunchClient";
 import { AccountsClient }     from "./pages/accounts/AccountsClient";
@@ -111,6 +112,7 @@ export default function App() {
   const [state, setState] = useState<AppState>("loading");
   const [user, setUser] = useState<User | null>(null);
   const [page, setPage] = useState("launch");
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
 
   useEffect(() => { void boot(); }, []);
 
@@ -118,6 +120,8 @@ export default function App() {
     const res = await api.getCurrentUser();
     if (res.user) { setUser(res.user); setState("app"); }
     else setState("login");
+    // Check for update in background — don't block UI
+    api.checkForUpdate().then((info) => { if (info.available) setUpdate(info); }).catch(() => {});
   }
 
   function handleAuth(u: User) { setUser(u); setState("app"); }
@@ -138,8 +142,26 @@ export default function App() {
   if (state === "login")  return <LoginScreen onDone={handleAuth} />;
 
   return (
-    <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout}>
-      <PageContent page={page} />
-    </AppShell>
+    <div className="flex min-h-screen flex-col">
+      {update && (
+        <div className="flex items-center justify-between bg-blue-600 px-4 py-2 text-[12px] text-white">
+          <span className="flex items-center gap-2">
+            <ArrowUpCircle size={14} />
+            Доступна новая версия <strong>{update.version}</strong>
+          </span>
+          <div className="flex items-center gap-4">
+            <button onClick={() => api.openReleasePage()} className="font-semibold underline hover:no-underline">
+              Скачать
+            </button>
+            <button onClick={() => setUpdate(null)} className="opacity-70 hover:opacity-100">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+      <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout}>
+        <PageContent page={page} />
+      </AppShell>
+    </div>
   );
 }

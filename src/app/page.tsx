@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, ArrowRight, Zap, Shield, BarChart3, Layers } from "lucide-react";
+import { Download, ArrowRight, Zap, Shield, BarChart3, Layers, Monitor, Apple } from "lucide-react";
 
 const features = [
   {
@@ -71,13 +71,20 @@ export default function HomePage() {
           всё в одном десктопном приложении.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/pricing"
+          <a
+            href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe"
             className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
           >
-            <Download size={16} />
-            Скачать бесплатно
-          </Link>
+            <Monitor size={16} />
+            Скачать для Windows
+          </a>
+          <a
+            href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg"
+            className="flex items-center gap-2 rounded-xl border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+          >
+            <Apple size={16} />
+            Скачать для macOS
+          </a>
           <Link
             href="/login"
             className="flex items-center gap-2 rounded-xl border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
@@ -86,7 +93,16 @@ export default function HomePage() {
             <ArrowRight size={16} />
           </Link>
         </div>
-        <p className="mt-4 text-xs text-zinc-600">Windows · macOS · Бесплатный тариф</p>
+        <p className="mt-4 text-xs text-zinc-600">
+          Windows · macOS Apple Silicon ·{" "}
+          <a
+            href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-intel.dmg"
+            className="underline hover:text-zinc-400"
+          >
+            macOS Intel
+          </a>
+          {" "}· Бесплатный тариф
+        </p>
       </section>
 
       {/* Features */}
@@ -135,13 +151,20 @@ export default function HomePage() {
           Готов запустить первый залив?
         </h2>
         <p className="mb-8 text-zinc-500">Бесплатный тариф. Без кредитной карты.</p>
-        <Link
-          href="/pricing"
+        <a
+          href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe"
           className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-500"
         >
-          <Download size={16} />
-          Начать бесплатно
-        </Link>
+          <Monitor size={16} />
+          Скачать для Windows
+        </a>
+        <a
+          href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg"
+          className="ml-3 inline-flex items-center gap-2 rounded-xl border border-zinc-700 px-8 py-3.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+        >
+          <Apple size={16} />
+          Скачать для macOS
+        </a>
       </section>
 
       {/* Footer */}

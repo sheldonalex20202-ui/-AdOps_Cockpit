@@ -16,6 +16,7 @@ import (
 	"adops-desktop/internal/launch"
 	"adops-desktop/internal/license"
 	"adops-desktop/internal/session"
+	"adops-desktop/internal/updater"
 
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -729,6 +730,29 @@ func (a *App) MockSyncAccount(id string) error {
 		a.auditSvc.OK(a.currentUserID, "sync", "MetaAdAccount", id, db.JSON{"source": "mock"})
 	}
 	return err
+}
+
+// ─── Updater ─────────────────────────────────────────────────────────────────
+
+type UpdateInfo struct {
+	Available bool   `json:"available"`
+	Version   string `json:"version"`
+	URL       string `json:"url"`
+	Notes     string `json:"notes"`
+}
+
+func (a *App) CheckForUpdate() UpdateInfo {
+	info, err := updater.Check(Version)
+	if err != nil {
+		return UpdateInfo{}
+	}
+	return UpdateInfo(info)
+}
+
+func (a *App) OpenReleasePage() {
+	if a.ctx != nil {
+		runtime.BrowserOpenURL(a.ctx, "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest")
+	}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
