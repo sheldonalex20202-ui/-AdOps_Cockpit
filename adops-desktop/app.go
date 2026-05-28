@@ -118,6 +118,7 @@ func (a *App) Logout() {
 }
 
 func (a *App) GetCurrentUser() AuthResponse {
+	a.waitReady()
 	a.sessionMu.RLock()
 	user := a.currentUser
 	a.sessionMu.RUnlock()
@@ -769,15 +770,10 @@ func (a *App) restoreSession() {
 	if err != nil || s.Expired() {
 		return
 	}
-	verified, err := session.Verify(webURL(), s.Token)
-	if err != nil {
-		_ = session.Clear()
-		return
-	}
-	if err := session.Save(verified); err != nil {
-		fmt.Println("[session] save verified session failed:", err.Error())
-	}
-	a.setSession(verified.User())
+	// JWT is self-contained with a 30-day expiry — no network call needed on startup.
+	// Online verify would hit a cold-start Vercel function and time out,
+	// causing Clear() to delete a perfectly valid session.
+	a.setSession(s.User())
 }
 
 func (a *App) setSession(user session.User) {
