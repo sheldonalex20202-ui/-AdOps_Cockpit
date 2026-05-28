@@ -11,6 +11,7 @@ const publicPaths = [
   "/api/auth/callback",
   "/api/session/verify",
   "/api/version",
+  "/api/download",
 ];
 
 export function middleware(req: NextRequest) {
