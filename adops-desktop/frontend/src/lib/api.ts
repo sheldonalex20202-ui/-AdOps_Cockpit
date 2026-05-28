@@ -18,6 +18,7 @@ export const getCurrentUser = () => Go.GetCurrentUser();
 export const openBillingPage = () => Go.OpenBillingPage();
 export const checkForUpdate = (): Promise<UpdateInfo> => Go.CheckForUpdate();
 export const openReleasePage = (): Promise<void> => Go.OpenReleasePage();
+export const getVersion = (): Promise<string> => Go.GetVersion();
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
 

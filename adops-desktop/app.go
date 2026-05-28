@@ -742,6 +742,8 @@ type UpdateInfo struct {
 	Notes     string `json:"notes"`
 }
 
+func (a *App) GetVersion() string { return Version }
+
 func (a *App) CheckForUpdate() UpdateInfo {
 	info, err := updater.Check(webURL(), Version)
 	if err != nil {

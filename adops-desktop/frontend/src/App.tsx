@@ -114,11 +114,13 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [page, setPage] = useState("launch");
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [version, setVersion] = useState("");
 
   useEffect(() => { void boot(); }, []);
 
   async function boot() {
-    const res = await api.getCurrentUser();
+    const [res, ver] = await Promise.all([api.getCurrentUser(), api.getVersion().catch(() => "")]);
+    setVersion(ver);
     if (res.user) { setUser(res.user); setState("app"); }
     else setState("login");
     // Check for update in background — don't block UI
@@ -160,7 +162,7 @@ export default function App() {
           </div>
         </div>
       )}
-      <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout}>
+      <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout} version={version}>
         <PageContent page={page} />
       </AppShell>
     </div>

@@ -141,3 +141,15 @@ export function StartLoginFlow() {
 export function UpdateAccount(arg1, arg2) {
   return window['go']['main']['App']['UpdateAccount'](arg1, arg2);
 }
+
+export function CheckForUpdate() {
+  return window['go']['main']['App']['CheckForUpdate']();
+}
+
+export function OpenReleasePage() {
+  return window['go']['main']['App']['OpenReleasePage']();
+}
+
+export function GetVersion() {
+  return window['go']['main']['App']['GetVersion']();
+}

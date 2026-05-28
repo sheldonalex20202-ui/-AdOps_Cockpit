@@ -20,9 +20,10 @@ interface Props {
   onNavigate: (page: string) => void;
   user: { name: string; email: string };
   onLogout: () => void;
+  version?: string;
 }
 
-export function AppShell({ children, currentPage, onNavigate, user, onLogout }: Props) {
+export function AppShell({ children, currentPage, onNavigate, user, onLogout, version }: Props) {
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-ink font-sans">
       {/* ── Sidebar ── */}
@@ -31,6 +32,7 @@ export function AppShell({ children, currentPage, onNavigate, user, onLogout }: 
         <div className="flex h-11 shrink-0 items-center gap-2 border-b border-stroke px-4">
           <img src={logoImg} alt="AdOps Cockpit" className="h-5 w-5 object-contain shrink-0" />
           <span className="text-[13px] font-semibold text-ink">AdOps Cockpit</span>
+          {version && <span className="ml-auto text-[10px] text-muted">{version}</span>}
         </div>
 
         {/* Navigation */}

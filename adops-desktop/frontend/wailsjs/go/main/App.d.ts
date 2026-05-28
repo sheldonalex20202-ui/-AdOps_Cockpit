@@ -73,3 +73,9 @@ export function RunHealthCheck(arg1:string):Promise<main.HealthResult>;
 export function StartLoginFlow():Promise<main.LoginFlowResponse>;
 
 export function UpdateAccount(arg1:string,arg2:main.AccountInput):Promise<db.MetaAdAccount>;
+
+export function CheckForUpdate():Promise<any>;
+
+export function OpenReleasePage():Promise<void>;
+
+export function GetVersion():Promise<string>;
