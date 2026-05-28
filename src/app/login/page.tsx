@@ -75,7 +75,10 @@ function LoginForm() {
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: callbackUrl.toString() },
+      options: {
+        redirectTo: callbackUrl.toString(),
+        queryParams: { prompt: "select_account" },
+      },
     });
 
     if (error) {
