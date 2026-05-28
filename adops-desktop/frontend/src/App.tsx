@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import * as api from "./lib/api";
 import type { UpdateInfo } from "./lib/api";
-import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, Download, ExternalLink, Loader2 } from "lucide-react";
 import logoImg from "./assets/images/logo.png";
 // @ts-ignore
 import { EventsOn } from "../wailsjs/runtime/runtime";
@@ -109,6 +109,94 @@ function PageContent({ page }: { page: string }) {
   }
 }
 
+// ─── Update banner ────────────────────────────────────────────────────────────
+
+const fmtMb = (b: number) => (b / 1024 / 1024).toFixed(1);
+
+function UpdateBanner({
+  info,
+  phase,
+  done,
+  total,
+  onManual,
+}: {
+  info: UpdateInfo;
+  phase: "downloading" | "installing" | "error";
+  done: number;
+  total: number;
+  onManual: () => void;
+}) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const known = total > 0;
+
+  return (
+    <div className="relative flex items-center gap-3 overflow-hidden bg-[#1d4ed8] px-4 py-3 text-white select-none">
+      {/* Shimmer sweep — only while downloading */}
+      {phase === "downloading" && (
+        <div
+          className="pointer-events-none absolute inset-y-0 w-[35%] bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+          style={{ animation: "shimmer 2.2s linear infinite" }}
+          aria-hidden
+        />
+      )}
+
+      {/* Icon circle */}
+      <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-inset ring-white/20">
+        {phase === "error"      && <AlertCircle size={15} />}
+        {phase === "installing" && <Loader2 size={15} className="animate-spin" />}
+        {phase === "downloading" && !known && <Loader2 size={15} className="animate-spin" />}
+        {phase === "downloading" && known  && <Download size={15} />}
+      </div>
+
+      {/* Text + bar */}
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-[5px]">
+        {/* Row 1: title + right label */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[12px] font-semibold leading-none">
+            {phase === "downloading" && `Загружаю обновление ${info.version}`}
+            {phase === "installing"  && `Устанавливаю ${info.version}…`}
+            {phase === "error"       && "Не удалось обновить автоматически"}
+          </span>
+          <span className="shrink-0 text-[11px] font-medium tabular-nums text-blue-200">
+            {phase === "downloading" && known && `${fmtMb(done)} / ${fmtMb(total)} МБ · ${pct}%`}
+            {phase === "installing"  && "приложение перезапустится"}
+            {phase === "error"       && (
+              <button onClick={onManual} className="text-white underline underline-offset-2 hover:no-underline">
+                Скачать вручную
+              </button>
+            )}
+          </span>
+        </div>
+
+        {/* Row 2: progress bar */}
+        {phase !== "error" && (
+          <div className="h-[4px] overflow-hidden rounded-full bg-blue-900/50">
+            {phase === "installing" ? (
+              /* Pulse full bar while installing */
+              <div className="h-full w-full animate-pulse rounded-full bg-white/75" />
+            ) : known ? (
+              /* Deterministic fill */
+              <div
+                className="h-full rounded-full bg-white transition-[width] duration-300 ease-out"
+                style={{
+                  width: `${pct}%`,
+                  boxShadow: "0 0 6px rgba(255,255,255,0.6)",
+                }}
+              />
+            ) : (
+              /* Indeterminate slide */
+              <div
+                className="h-full w-[35%] rounded-full bg-white/80"
+                style={{ animation: "indeterminate 1.4s ease-in-out infinite" }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -172,37 +260,13 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col">
       {update && (
-        <div className="flex items-center gap-3 bg-blue-600 px-4 py-2 text-[12px] text-white">
-          <ArrowUpCircle size={14} className="shrink-0" />
-          {updatePhase === "downloading" && (
-            <>
-              <span className="shrink-0">Обновление {update.version} — загрузка...</span>
-              {dlTotal > 0 && (
-                <>
-                  <div className="h-1 w-32 shrink-0 overflow-hidden rounded bg-blue-400">
-                    <div
-                      className="h-full bg-white transition-all duration-200"
-                      style={{ width: `${Math.round((dlDone / dlTotal) * 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-blue-200">{Math.round((dlDone / dlTotal) * 100)}%</span>
-                </>
-              )}
-              {dlTotal <= 0 && <Loader2 size={12} className="animate-spin" />}
-            </>
-          )}
-          {updatePhase === "installing" && (
-            <span>Устанавливается... приложение перезапустится автоматически</span>
-          )}
-          {updatePhase === "error" && (
-            <>
-              <span>Ошибка автообновления.</span>
-              <button onClick={() => api.openReleasePage()} className="underline hover:no-underline">
-                Скачать вручную
-              </button>
-            </>
-          )}
-        </div>
+        <UpdateBanner
+          info={update}
+          phase={updatePhase}
+          done={dlDone}
+          total={dlTotal}
+          onManual={() => api.openReleasePage()}
+        />
       )}
       <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout} version={version}>
         <PageContent page={page} />
