@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const publicPaths = [
+  "/",
   "/login",
   "/register",
   "/pricing",

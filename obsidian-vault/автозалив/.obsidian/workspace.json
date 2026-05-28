@@ -11,10 +11,14 @@
             "id": "ca37ab4185aa5ec8",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Граф"
+              "type": "markdown",
+              "state": {
+                "file": "14 Infrastructure.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "14 Infrastructure"
             }
           }
         ]
@@ -90,6 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "14 Infrastructure.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -99,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Обратные ссылки"
+              "title": "Обратные ссылки для 14 Infrastructure"
             }
           },
           {
@@ -108,11 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "14 Infrastructure.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Исходящие ссылки"
+              "title": "Исходящие ссылки из 14 Infrastructure"
             }
           },
           {
@@ -150,12 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "14 Infrastructure.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Структура"
+              "title": "Структура 14 Infrastructure"
             }
           }
         ]
@@ -179,6 +186,9 @@
   },
   "active": "ca37ab4185aa5ec8",
   "lastOpenFiles": [
+    "Processes/00 Process Map.md",
+    "00 Home.md.tmp.16532.2a80440c8d04",
+    "14 Infrastructure.md",
     "13 Knowledge Base Methodology.md",
     "Templates/Process Template.md",
     "Templates",
@@ -192,7 +202,6 @@
     "Processes/08 Health Check Process.md",
     "Processes/07 Pool Management Process.md",
     "Processes/06 Account Management Process.md",
-    "Processes/00 Process Map.md",
     "Processes/05 Stripe Webhook Process.md",
     "Processes/04 Subscription Checkout Process.md",
     "Processes/02 Web Login and Registration Process.md",
@@ -206,8 +215,6 @@
     "Без названия.base",
     "99 Glossary.md",
     "12 Roadmap.md",
-    "11 Security Notes.md",
-    "10 Development Workflow.md",
     "Без названия 1",
     "Без названия.canvas",
     "Без названия"

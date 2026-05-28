@@ -17,6 +17,7 @@
 - [[11 Security Notes|Безопасность]]
 - [[12 Roadmap|Roadmap]]
 - [[13 Knowledge Base Methodology|Методология базы знаний]]
+- [[14 Infrastructure|Инфраструктура и деплой]]
 - [[99 Glossary|Глоссарий]]
 
 ## Процессы системы
