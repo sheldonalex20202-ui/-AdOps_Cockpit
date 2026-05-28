@@ -86,6 +86,10 @@ export function GetLaunchJobs(arg1) {
   return window['go']['main']['App']['GetLaunchJobs'](arg1);
 }
 
+export function GetLaunchJobsDetailed(arg1) {
+  return window['go']['main']['App']['GetLaunchJobsDetailed'](arg1);
+}
+
 export function GetLicenseStatus() {
   return window['go']['main']['App']['GetLicenseStatus']();
 }

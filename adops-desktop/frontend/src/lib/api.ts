@@ -70,6 +70,7 @@ export const deleteHeadlineSet = (id: string) => Go.DeleteHeadlineSet(id);
 export const createLaunchJob = (input: LaunchInput) => Go.CreateLaunchJob(input);
 export const getLaunchJobs = (limit = 20) => Go.GetLaunchJobs(limit);
 export const getLaunchJob = (id: string) => Go.GetLaunchJob(id);
+export const getLaunchJobsDetailed = (limit = 100) => Go.GetLaunchJobsDetailed(limit);
 
 // ─── Audit ────────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ export interface CreativeInput {
   description?: string;
   callToAction: string;
   destinationUrl?: string;
+  angle?: string;
 }
 
 export interface TemplateInput {
@@ -113,6 +115,8 @@ export interface TemplateInput {
   optimizationGoal: string;
   adSetNameTpl: string;
   adNameTpl: string;
+  campaignNameTpl: string;
+  vertical: string;
 }
 
 export interface HeadlineSetInput {

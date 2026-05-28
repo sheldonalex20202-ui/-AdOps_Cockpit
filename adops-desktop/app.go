@@ -408,6 +408,7 @@ type CreativeInput struct {
 	Description    *string `json:"description"`
 	CallToAction   string  `json:"callToAction"`
 	DestinationURL *string `json:"destinationUrl"`
+	Angle          *string `json:"angle"`
 }
 
 func (a *App) CreateCreative(input CreativeInput) (db.Creative, error) {
@@ -422,6 +423,7 @@ func (a *App) CreateCreative(input CreativeInput) (db.Creative, error) {
 		Description:    input.Description,
 		CallToAction:   orDefault(input.CallToAction, "LEARN_MORE"),
 		DestinationURL: input.DestinationURL,
+		Angle:          input.Angle,
 		CreatedAt:      time.Now(), UpdatedAt: time.Now(),
 	}
 
@@ -470,6 +472,8 @@ type TemplateInput struct {
 	OptimizationGoal string   `json:"optimizationGoal"`
 	AdSetNameTpl     string   `json:"adSetNameTpl"`
 	AdNameTpl        string   `json:"adNameTpl"`
+	CampaignNameTpl  string   `json:"campaignNameTpl"`
+	Vertical         string   `json:"vertical"`
 }
 
 func (a *App) CreateTemplate(input TemplateInput) (db.CampaignTemplate, error) {
@@ -486,6 +490,8 @@ func (a *App) CreateTemplate(input TemplateInput) (db.CampaignTemplate, error) {
 		BillingEvent:     "IMPRESSIONS",
 		AdSetNameTpl:     orDefault(input.AdSetNameTpl, "{account} - AdSet"),
 		AdNameTpl:        orDefault(input.AdNameTpl, "{account} - {creative}"),
+		CampaignNameTpl:  orDefault(input.CampaignNameTpl, "{account} | {date}"),
+		Vertical:         input.Vertical,
 		CreatedAt:        time.Now(), UpdatedAt: time.Now(),
 	}
 	if err := a.gdb.Create(&t).Error; err != nil {
@@ -496,6 +502,17 @@ func (a *App) CreateTemplate(input TemplateInput) (db.CampaignTemplate, error) {
 
 func (a *App) DeleteTemplate(id string) error {
 	return a.gdb.Where("id = ? AND user_id = ?", id, a.currentUserID).Delete(&db.CampaignTemplate{}).Error
+}
+
+func (a *App) GetLaunchJobsDetailed(limit int) []db.LaunchJob {
+	if a.currentUserID == "" {
+		return nil
+	}
+	var jobs []db.LaunchJob
+	a.gdb.Where("user_id = ?", a.currentUserID).
+		Preload("Items.AdAccount").
+		Order("created_at desc").Limit(limit).Find(&jobs)
+	return jobs
 }
 
 // ─── Headline Sets ────────────────────────────────────────────────────────────

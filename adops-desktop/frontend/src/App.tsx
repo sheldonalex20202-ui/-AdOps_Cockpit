@@ -7,13 +7,14 @@ import logoImg from "./assets/images/logo.png";
 // @ts-ignore
 import { EventsOn } from "../wailsjs/runtime/runtime";
 
-import { LaunchClient }       from "./pages/launch/LaunchClient";
-import { AccountsClient }     from "./pages/accounts/AccountsClient";
-import { AccountPoolsClient } from "./pages/account-pools/AccountPoolsClient";
-import { HealthClient }       from "./pages/health-checks/HealthClient";
-import { CreativesClient }    from "./pages/creatives/CreativesClient";
-import { AuditClient }        from "./pages/audit-logs/AuditClient";
-import { IntegrationsClient } from "./pages/integrations/IntegrationsClient";
+import { LaunchClient }        from "./pages/launch/LaunchClient";
+import { AccountsClient }      from "./pages/accounts/AccountsClient";
+import { AccountPoolsClient }  from "./pages/account-pools/AccountPoolsClient";
+import { HealthClient }        from "./pages/health-checks/HealthClient";
+import { CreativesClient }     from "./pages/creatives/CreativesClient";
+import { AuditClient }         from "./pages/audit-logs/AuditClient";
+import { IntegrationsClient }  from "./pages/integrations/IntegrationsClient";
+import { LaunchHistoryClient } from "./pages/launch-history/LaunchHistoryClient";
 
 type User = { id: string; name: string; email: string };
 type AppState = "loading" | "login" | "app";
@@ -98,14 +99,15 @@ function LoginScreen({ onDone }: { onDone: (user: User) => void }) {
 
 function PageContent({ page }: { page: string }) {
   switch (page) {
-    case "launch":        return <LaunchClient />;
-    case "accounts":      return <AccountsClient />;
-    case "account-pools": return <AccountPoolsClient />;
-    case "health-checks": return <HealthClient />;
-    case "creatives":     return <CreativesClient />;
-    case "audit-logs":    return <AuditClient />;
-    case "integrations":  return <IntegrationsClient />;
-    default:              return <LaunchClient />;
+    case "launch":          return <LaunchClient />;
+    case "accounts":        return <AccountsClient />;
+    case "account-pools":   return <AccountPoolsClient />;
+    case "health-checks":   return <HealthClient />;
+    case "creatives":       return <CreativesClient />;
+    case "audit-logs":      return <AuditClient />;
+    case "integrations":    return <IntegrationsClient />;
+    case "launch-history":  return <LaunchHistoryClient />;
+    default:                return <LaunchClient />;
   }
 }
 
@@ -210,6 +212,13 @@ export default function App() {
   const [updatePhase, setUpdatePhase] = useState<"downloading" | "installing" | "error">("downloading");
 
   useEffect(() => { void boot(); }, []);
+
+  // Custom navigation events from child components
+  useEffect(() => {
+    const h = (e: Event) => setPage((e as CustomEvent<string>).detail);
+    window.addEventListener("navigate", h);
+    return () => window.removeEventListener("navigate", h);
+  }, []);
 
   // Wails event listeners for update progress
   useEffect(() => {

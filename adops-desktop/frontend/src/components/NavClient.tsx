@@ -1,5 +1,5 @@
 import {
-  Activity, BriefcaseBusiness, FileClock, Image,
+  Activity, BriefcaseBusiness, FileClock, History, Image,
   Layers3, Rocket, Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -7,6 +7,7 @@ import clsx from "clsx";
 
 const icons: Record<string, LucideIcon> = {
   launch:       Rocket,
+  history:      History,
   creatives:    Image,
   accounts:     BriefcaseBusiness,
   pools:        Layers3,

@@ -70,6 +70,35 @@ button, input, select, textarea { font: inherit; }
   100% { transform: translateX(350%); }
 }
 
+/* ── Step / card animations ──────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes countPop {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in-up       { animation: fadeInUp 200ms ease both; }
+.animate-slide-from-right { animation: slideInFromRight 200ms ease both; }
+.animate-slide-from-left  { animation: slideInFromLeft 200ms ease both; }
+.animate-scale-in         { animation: scaleIn 150ms ease both; }
+.animate-count-pop        { animation: countPop 350ms cubic-bezier(.34,1.56,.64,1) both; }
+
 /* ── Scrollbar ────────────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track    { background: transparent; }

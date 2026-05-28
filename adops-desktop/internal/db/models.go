@@ -196,6 +196,8 @@ type CampaignTemplate struct {
 	TargetingJSON    JSON      `gorm:"type:text" json:"targetingJson"`
 	AdSetNameTpl     string    `gorm:"type:text;default:'{account} - AdSet'" json:"adSetNameTpl"`
 	AdNameTpl        string    `gorm:"type:text;default:'{account} - {creative}'" json:"adNameTpl"`
+	CampaignNameTpl  string    `gorm:"type:text;default:'{account} | {date}'" json:"campaignNameTpl"`
+	Vertical         string    `gorm:"type:text;default:''" json:"vertical"`
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
 }
@@ -213,6 +215,7 @@ type Creative struct {
 	Description    *string   `gorm:"type:text" json:"description"`
 	CallToAction   string    `gorm:"type:text;default:'LEARN_MORE'" json:"callToAction"`
 	DestinationURL *string   `gorm:"type:text" json:"destinationUrl"`
+	Angle          *string   `gorm:"type:text" json:"angle"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
 }

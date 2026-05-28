@@ -5,13 +5,14 @@ import { NavClient } from "./NavClient";
 import logoImg from "../assets/images/logo.png";
 
 const nav = [
-  { page: "launch",        label: "Автозалив",    icon: "launch" },
-  { page: "creatives",     label: "Креативы",      icon: "creatives" },
-  { page: "accounts",      label: "Мои кабинеты", icon: "accounts" },
-  { page: "account-pools", label: "Пулы",          icon: "pools" },
-  { page: "health-checks", label: "Health checks", icon: "health" },
-  { page: "audit-logs",    label: "Аудит",         icon: "audit" },
-  { page: "integrations",  label: "Интеграции",    icon: "integrations" },
+  { page: "launch",          label: "Автозалив",     icon: "launch" },
+  { page: "launch-history",  label: "История залива", icon: "history" },
+  { page: "creatives",       label: "Креативы",       icon: "creatives" },
+  { page: "accounts",        label: "Мои кабинеты",  icon: "accounts" },
+  { page: "account-pools",   label: "Пулы",           icon: "pools" },
+  { page: "health-checks",   label: "Health checks",  icon: "health" },
+  { page: "audit-logs",      label: "Аудит",          icon: "audit" },
+  { page: "integrations",    label: "Интеграции",     icon: "integrations" },
 ];
 
 interface Props {

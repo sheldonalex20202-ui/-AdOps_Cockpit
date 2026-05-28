@@ -38,6 +38,19 @@
 - [[Processes/13 Entitlements Process|Entitlements]]
 - [[Processes/14 Error Handling Process|Error handling]]
 - [[Processes/15 Release and Verification Process|Release and verification]]
+- [[Processes/16 Auto-Update Process|Auto-update]]
+
+## Исследование предметной области — Media Buying
+
+- [[Media Buying Research/00 Overview|Обзор: что такое залив и автозалив]]
+- [[Media Buying Research/01 Связки и воронки|Связки и воронки: пошаговый процесс залива]]
+- [[Media Buying Research/02 Инфраструктура|Инфраструктура: аккаунты, BM, пиксели, прогрев]]
+- [[Media Buying Research/03 Структура кампаний|Структура кампаний: CBO/ABO, таргетинг, форматы]]
+- [[Media Buying Research/04 Нейминг|Нейминг: шаблоны названий по всем командам и вертикалям]]
+- [[Media Buying Research/05 Вертикали|Вертикали: нутра, гемблинг, крипто, дейтинг]]
+- [[Media Buying Research/06 Инструменты|Инструменты: автозалив, антидетект, трекеры, клоака]]
+- [[Media Buying Research/07 Команда|Команда: роли, обязанности, структуры]]
+- [[Media Buying Research/08 Метрики и аналитика|Метрики, Google Sheets шаблоны, таблицы залива]]
 
 ## Текущее позиционирование
 

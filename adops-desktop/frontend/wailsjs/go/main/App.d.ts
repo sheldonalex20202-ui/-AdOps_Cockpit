@@ -46,6 +46,8 @@ export function GetLaunchJob(arg1:string):Promise<db.LaunchJob>;
 
 export function GetLaunchJobs(arg1:number):Promise<Array<db.LaunchJob>>;
 
+export function GetLaunchJobsDetailed(arg1:number):Promise<Array<db.LaunchJob>>;
+
 export function GetLicenseStatus():Promise<license.Status>;
 
 export function GetPools():Promise<main.PoolsResult>;
