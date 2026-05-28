@@ -166,3 +166,8 @@ jobs:
               -d "{\"key\":\"LATEST_APP_VERSION\",\"value\":\"$VERSION\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}"
             echo "Created LATEST_APP_VERSION = $VERSION"
           fi
+
+      - name: Trigger Vercel redeploy
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+          echo "Vercel redeploy triggered"
