@@ -52,6 +52,18 @@ func (f *Flow) Start(webURL string, onSession func(session.Session) error) (stri
 	f.server = server
 
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		// Required for Chrome's Private Network Access policy:
+		// fetch() from an HTTPS page to http://127.0.0.1 needs these headers.
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Private-Network", "true")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		q := r.URL.Query()
 		if q.Get("state") != state {
 			http.Error(w, "invalid state", http.StatusBadRequest)
