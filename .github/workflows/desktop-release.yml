@@ -138,13 +138,31 @@ jobs:
             release/macos/AdOpsCockpit-macos-intel.dmg
             release/macos/AdOpsCockpit-macos-arm64.dmg
 
-      - name: Update Vercel LATEST_APP_VERSION env variable
+      - name: Update LATEST_APP_VERSION on Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          curl -s -X PATCH \
+          VERSION="${{ github.ref_name }}"
+
+          # Find existing env var ID (to PATCH instead of POST)
+          ENV_ID=$(curl -sf \
             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"key\":\"LATEST_APP_VERSION\",\"value\":\"${{ github.ref_name }}\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}" || true
+            -H "Authorization: Bearer $VERCEL_TOKEN" | \
+            jq -r '.envs[] | select(.key == "LATEST_APP_VERSION") | .id' | head -1)
+
+          if [ -n "$ENV_ID" ]; then
+            curl -sf -X PATCH \
+              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env/$ENV_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"value\":\"$VERSION\"}"
+            echo "Updated LATEST_APP_VERSION → $VERSION"
+          else
+            curl -sf -X POST \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"LATEST_APP_VERSION\",\"value\":\"$VERSION\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}"
+            echo "Created LATEST_APP_VERSION = $VERSION"
+          fi
