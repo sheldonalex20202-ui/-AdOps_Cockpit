@@ -791,5 +791,5 @@ func webURL() string {
 	if v := strings.TrimRight(os.Getenv("ADOPS_WEB_URL"), "/"); v != "" {
 		return v
 	}
-	return "http://localhost:3000"
+	return "https://ad-ops-cockpit-2rxv82q03-sheldonalex20202-uis-projects.vercel.app"
 }
