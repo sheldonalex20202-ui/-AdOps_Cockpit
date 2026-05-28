@@ -1,6 +1,0 @@
-{
-  "version": "v1.0.6",
-  "windowsUrl": "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe",
-  "macosArmUrl": "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg",
-  "macosIntelUrl": "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-intel.dmg"
-}

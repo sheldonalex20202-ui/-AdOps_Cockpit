@@ -29,7 +29,7 @@ func Check(webURL, currentVersion string) (ReleaseInfo, error) {
 		return ReleaseInfo{}, nil
 	}
 
-	endpoint := strings.TrimRight(webURL, "/") + "/version.json"
+	endpoint := strings.TrimRight(webURL, "/") + "/api/version"
 	client := &http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Get(endpoint)
 	if err != nil {
