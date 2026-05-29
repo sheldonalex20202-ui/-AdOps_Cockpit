@@ -22,3 +22,56 @@ button, input, select, textarea { font: inherit; }
 ::-webkit-scrollbar-track    { background: transparent; }
 ::-webkit-scrollbar-thumb    { background: #3f3f46; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* ── Landing page animations ─────────────────────────── */
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 24px 0 rgba(96,165,250,.25); }
+  50%       { box-shadow: 0 0 40px 4px rgba(167,139,250,.35); }
+}
+@keyframes badge-pop {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes section-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-hero-fade-up  { animation: hero-fade-up 0.7s cubic-bezier(.22,1,.36,1) both; }
+.animate-badge-pop     { animation: badge-pop 0.45s cubic-bezier(.34,1.56,.64,1) both; }
+.animate-glow-pulse    { animation: glow-pulse 3s ease-in-out infinite; }
+
+.gradient-text {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 5s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-glass {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+.card-glass:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.14);
+  transform: translateY(-2px);
+}
+
+.hero-gradient-overlay {
+  background: radial-gradient(ellipse 80% 60% at 50% 120%, rgba(59,130,246,.18) 0%, transparent 70%),
+              linear-gradient(to top, #09090b 0%, transparent 50%),
+              linear-gradient(to bottom, #09090b 0%, transparent 30%);
+}
