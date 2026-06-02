@@ -5,6 +5,7 @@ import { AnimatedStats } from "@/components/AnimatedStats";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import { AppMockup } from "@/components/AppMockup";
 import MinimalHero from "@/components/ui/minimal-hero";
+import { HeroVisual } from "@/components/HeroVisual";
 
 const painPoints = [
   { icon: Clock,         title: "6 часов ручного залива",    desc: "Открываешь каждый кабинет по одному, настраиваешь вручную, ошибаешься, переделываешь." },
@@ -88,6 +89,7 @@ export default function HomePage() {
             { value: "2×",    label: "рост дохода" },
           ]}
           accentColor="#3b82f6"
+          visual={<HeroVisual />}
         />
 
         {/* scroll indicator */}
@@ -95,9 +97,6 @@ export default function HomePage() {
           <div className="h-6 w-px bg-gradient-to-b from-transparent to-zinc-600 rounded" />
         </div>
       </section>
-
-      {/* ── Stats ──────────────────────────────────────── */}
-      <AnimatedStats />
 
       {/* ── App preview scroll ─────────────────────────── */}
       <section className="bg-zinc-950">
