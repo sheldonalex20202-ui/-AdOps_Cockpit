@@ -1,61 +1,57 @@
+import { Settings, Zap, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, statusTone } from "@/components/ui";
+import { Badge, Button, Card, PageHeader, statusTone } from "@/components/ui";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
 
-type Connection = { id: string; name: string; status: string };
-
 export function IntegrationsClient() {
-  const [connections, setConnections] = useState<Connection[]>([]);
   const [message, setMessage] = useState("");
-  const [name, setName] = useState("Meta mock");
-  const [status, setStatus] = useState("MOCK");
-  const [importCount, setImportCount] = useState(0);
-
-  async function loadConnections() {
-    // Connections list: not yet exposed as separate endpoint — show placeholder
-    setConnections([{ id: "mock", name: "Meta Ads (mock)", status: "MOCK" }]);
-  }
-
-  useEffect(() => { void loadConnections(); }, []);
 
   async function mockImport() {
     const count = await api.mockImportAccounts(30);
-    setImportCount(count);
-    setMessage(`Импортировано ${count} тестовых кабинетов в базу.`);
+    setMessage(`Импортировано ${count} тестовых кабинетов.`);
+    setTimeout(() => setMessage(""), 4000);
   }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-black">Интеграции</h1>
-        <p className="text-sm text-slate-500">В MVP: Meta mock/placeholder для загрузки кабинетов. Реальный API — следующий этап.</p>
-      </div>
+      <PageHeader
+        title="Интеграции"
+        subtitle="Подключение Meta API, импорт данных и управление подпиской"
+        icon={Settings}
+      />
 
-      <Card className="space-y-4">
-        <div className="text-sm font-bold text-slate-700">Meta подключения</div>
-        <div className="space-y-2">
-          {connections.map((c) => (
-            <div key={c.id} className="flex items-center justify-between rounded border border-stroke bg-raised p-3">
-              <span className="font-bold">{c.name}</span>
-              <Badge tone={statusTone(c.status)}>{ru(c.status)}</Badge>
-            </div>
-          ))}
+      {/* Meta connection */}
+      <Card padding="md">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+            <Zap size={15} />
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold text-ink">Meta Ads API</div>
+            <div className="text-[11px] text-muted">Mock-режим · Реальный API — следующий этап</div>
+          </div>
+          <span className="ml-auto"><Badge tone="neutral">Mock</Badge></span>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={mockImport}>
-            Загрузить 30 mock кабинетов
+        <div className="rounded-lg border border-stroke bg-raised/40 p-3 mb-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-medium text-ink">Meta Ads (mock)</span>
+            <Badge tone="warn" dot>Mock</Badge>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={mockImport}>
+            <Zap size={12} /> Загрузить 30 mock кабинетов
           </Button>
+          {message && (
+            <span className="text-[12px] text-success animate-fade-in-up">{message}</span>
+          )}
         </div>
-
-        {message && (
-          <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div>
-        )}
       </Card>
 
-      <Card>
-        <div className="mb-2 text-sm font-bold text-slate-700">Аккаунт и подписка</div>
+      {/* Subscription */}
+      <Card padding="md">
+        <div className="mb-3 text-[13px] font-semibold text-ink">Аккаунт и подписка</div>
         <SubscriptionBlock />
       </Card>
     </div>
@@ -69,24 +65,26 @@ function SubscriptionBlock() {
     void api.getCurrentUser().then((res) => setUser(res.user ?? null));
   }, []);
 
+  if (!user) return <div className="text-[12px] text-muted">Загрузка...</div>;
+
   return (
     <div className="space-y-3">
-      {user && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-stroke bg-raised p-3">
-          <div>
-            <div className="text-sm font-bold">{user.name}</div>
-            <div className="text-xs text-muted">{user.email}</div>
-            {user.expiresAt && (
-              <div className="mt-1 text-xs text-muted">
-                Токен входа действует до {new Date(user.expiresAt).toLocaleDateString("ru-RU")}
-              </div>
-            )}
-          </div>
-          <Badge tone={user.plan === "free" ? "neutral" : "good"}>{user.plan}</Badge>
+      <div className="flex items-center justify-between rounded-lg border border-stroke bg-raised/40 px-3 py-2.5">
+        <div>
+          <div className="text-[13px] font-medium text-ink">{user.name}</div>
+          <div className="text-[11px] text-muted">{user.email}</div>
+          {user.expiresAt && (
+            <div className="mt-1 text-[11px] text-muted">
+              Сессия до {new Date(user.expiresAt).toLocaleDateString("ru-RU")}
+            </div>
+          )}
         </div>
-      )}
-      <Button onClick={() => void api.openBillingPage()} variant="ghost">
-        Оплатить или продлить подписку
+        <Badge tone={user.plan === "free" ? "neutral" : "good"}>
+          {user.plan}
+        </Badge>
+      </div>
+      <Button variant="ghost" size="sm" onClick={() => void api.openBillingPage()}>
+        <ExternalLink size={12} /> Управление подпиской
       </Button>
     </div>
   );

@@ -1,28 +1,20 @@
-"use client";
-
-import { Activity, Archive, Plus, RefreshCw } from "lucide-react";
+import { Activity, Archive, BriefcaseBusiness, Plus, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Badge, Button, Card, Empty, Input, Select, Table, statusTone } from "@/components/ui";
+import {
+  Badge, Button, Empty, FilterBar, Input, Loading,
+  PageHeader, ScoreBar, Select, Table, Td, Th, Tr, statusTone,
+} from "@/components/ui";
 import { money } from "@/lib/format";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
 
-type Pool = { id: string; name: string; color: string; _count?: { items: number } };
+type Pool = { id: string; name: string; color: string };
 type Account = {
-  id: string;
-  externalId: string;
-  name: string;
-  currency: string;
-  timezone: string;
-  status: string;
-  readinessStatus: string;
-  readinessScore: number;
-  billingStatus: string;
-  tokenStatus: string;
-  spendLimit?: number;
-  notes?: string;
-  lastSyncAt?: any;
-  lastHealthCheckAt?: any;
+  id: string; externalId: string; name: string;
+  currency: string; timezone: string;
+  status: string; readinessStatus: string; readinessScore: number;
+  billingStatus: string; tokenStatus: string;
+  spendLimit?: number; lastHealthCheckAt?: string;
   pools?: { pool?: Pool }[];
 };
 
@@ -32,47 +24,46 @@ export function AccountsClient() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [targetPoolId, setTargetPoolId] = useState("");
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ search: "", status: "", readiness: "", poolId: "", problemOnly: false });
+  const [filters, setFilters] = useState({ search: "", status: "", readiness: "", poolId: "" });
   const [form, setForm] = useState({ externalId: "", name: "", currency: "USD", timezone: "Europe/Moscow" });
+  const [adding, setAdding] = useState(false);
 
-  const allSelected = useMemo(() => accounts.length > 0 && accounts.every((account) => selectedIds.includes(account.id)), [accounts, selectedIds]);
+  const allSelected = useMemo(
+    () => accounts.length > 0 && accounts.every((a) => selectedIds.includes(a.id)),
+    [accounts, selectedIds]
+  );
+
+  const stats = useMemo(() => ({
+    total:   accounts.length,
+    ready:   accounts.filter((a) => a.readinessStatus === "READY").length,
+    issues:  accounts.filter((a) => ["BLOCKED", "BILLING_ISSUE", "DISABLED"].includes(a.status)).length,
+    avgScore: accounts.length
+      ? Math.round(accounts.reduce((s, a) => s + a.readinessScore, 0) / accounts.length)
+      : 0,
+  }), [accounts]);
 
   async function load() {
     setLoading(true);
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (typeof value === "boolean") {
-        if (value) params.set(key, "true");
-      } else if (value) {
-        params.set(key, value);
-      }
-    });
-    const [accountsRes, poolsRes] = await Promise.all([
+    const [ar, pr] = await Promise.all([
       api.getAccounts(filters.poolId, filters.status, filters.search, false),
       api.getPools(),
     ]);
-    setAccounts(accountsRes.accounts ?? []);
-    setPools(poolsRes.pools ?? []);
+    setAccounts(ar.accounts ?? []);
+    setPools(pr.pools ?? []);
     setLoading(false);
   }
 
-  useEffect(() => {
-    void load();
-  }, [filters]);
+  useEffect(() => { void load(); }, [filters]);
 
-  function toggleSelected(id: string) {
-    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  function toggle(id: string) {
+    setSelectedIds((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
   }
 
   async function createAccount() {
     if (!form.externalId || !form.name) return;
     await api.createAccount(form);
     setForm({ externalId: "", name: "", currency: "USD", timezone: "Europe/Moscow" });
-    await load();
-  }
-
-  async function syncMock() {
-    await api.mockImportAccounts(30);
+    setAdding(false);
     await load();
   }
 
@@ -88,117 +79,187 @@ export function AccountsClient() {
     await load();
   }
 
-  async function archive(id: string) {
-    await api.archiveAccounts([id], true);
-    setSelectedIds((current) => current.filter((item) => item !== id));
-    await load();
-  }
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black">Мои кабинеты</h1>
-          <p className="text-sm text-slate-500">База Meta кабинетов одного баера: статусы, пулы и готовность к запуску.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={load}><RefreshCw size={16} /> Обновить</Button>
-          <Button onClick={syncMock}>Загрузить mock</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Мои кабинеты"
+        subtitle="Meta рекламные кабинеты — статусы, пулы, готовность к заливу"
+        icon={BriefcaseBusiness}
+        stats={[
+          { label: "всего",   value: stats.total },
+          { label: "готовы",  value: stats.ready,  tone: "good" },
+          { label: "проблем", value: stats.issues,  tone: stats.issues > 0 ? "bad" : "good" },
+          { label: "avg score", value: stats.avgScore },
+        ]}
+        actions={
+          <>
+            <Button variant="ghost" size="sm" onClick={load}><RefreshCw size={13} /> Обновить</Button>
+            <Button variant="ghost" size="sm" onClick={() => api.mockImportAccounts(30).then(load)}>
+              <Upload size={13} /> Mock import
+            </Button>
+            <Button size="sm" onClick={() => setAdding((v) => !v)}>
+              <Plus size={13} /> Добавить
+            </Button>
+          </>
+        }
+      />
 
-      <Card>
-        <div className="grid gap-2 md:grid-cols-[1.3fr_160px_180px_180px_auto]">
-          <Input placeholder="Поиск по названию или ID" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} />
-          <Select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
-            <option value="">Meta статус</option>
-            <option value="ACTIVE">Активен</option>
-            <option value="LIMITED">Ограничен</option>
-            <option value="DISABLED">Отключен</option>
-            <option value="BILLING_ISSUE">Проблема оплаты</option>
-          </Select>
-          <Select value={filters.readiness} onChange={(event) => setFilters({ ...filters, readiness: event.target.value })}>
-            <option value="">Readiness</option>
-            <option value="READY">Готов</option>
-            <option value="NEEDS_ATTENTION">Нужно внимание</option>
-            <option value="BLOCKED">Заблокирован</option>
-          </Select>
-          <Select value={filters.poolId} onChange={(event) => setFilters({ ...filters, poolId: event.target.value })}>
-            <option value="">Все пулы</option>
-            {pools.map((pool) => <option key={pool.id} value={pool.id}>{pool.name}</option>)}
-          </Select>
-          <label className="flex items-center gap-2 text-[13px] font-medium text-ink">
-            <input type="checkbox" checked={filters.problemOnly} onChange={(event) => setFilters({ ...filters, problemOnly: event.target.checked })} />
-            Только проблемы
-          </label>
+      {/* Add form */}
+      {adding && (
+        <div className="rounded-lg border border-stroke bg-card p-3 animate-fade-in-up">
+          <p className="mb-2 text-[12px] font-semibold text-muted uppercase tracking-wide">Новый кабинет</p>
+          <div className="grid grid-cols-[160px_1fr_90px_200px_auto] gap-2">
+            <Input placeholder="act_..." value={form.externalId} onChange={(e) => setForm({ ...form, externalId: e.target.value })} />
+            <Input placeholder="Название кабинета" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input placeholder="USD" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
+            <Input placeholder="Europe/Moscow" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+            <Button onClick={createAccount}><Plus size={13} /> Создать</Button>
+          </div>
         </div>
-      </Card>
+      )}
 
-      <Card>
-        <div className="grid gap-2 md:grid-cols-[160px_1fr_100px_180px_auto]">
-          <Input placeholder="act_..." value={form.externalId} onChange={(event) => setForm({ ...form, externalId: event.target.value })} />
-          <Input placeholder="Название кабинета" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-          <Input placeholder="USD" value={form.currency} onChange={(event) => setForm({ ...form, currency: event.target.value })} />
-          <Input placeholder="Europe/Moscow" value={form.timezone} onChange={(event) => setForm({ ...form, timezone: event.target.value })} />
-          <Button onClick={createAccount}><Plus size={16} /> Добавить</Button>
-        </div>
-      </Card>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-bold text-slate-600">Выбрано: {selectedIds.length}</span>
-        <Button variant="ghost" disabled={!selectedIds.length} onClick={() => healthCheck(selectedIds)}><Activity size={16} /> Проверить выбранные</Button>
-        <Select value={targetPoolId} onChange={(event) => setTargetPoolId(event.target.value)}>
-          <option value="">Добавить в пул</option>
-          {pools.map((pool) => <option key={pool.id} value={pool.id}>{pool.name}</option>)}
+      {/* Filters */}
+      <FilterBar>
+        <Input
+          className="w-52"
+          placeholder="Поиск по названию или ID..."
+          value={filters.search}
+          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+        />
+        <Select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+          <option value="">Любой статус</option>
+          <option value="ACTIVE">Активен</option>
+          <option value="LIMITED">Ограничен</option>
+          <option value="DISABLED">Отключён</option>
+          <option value="BILLING_ISSUE">Проблема оплаты</option>
         </Select>
-        <Button variant="ghost" disabled={!selectedIds.length || !targetPoolId} onClick={addToPool}>Применить</Button>
-      </div>
+        <Select value={filters.readiness} onChange={(e) => setFilters({ ...filters, readiness: e.target.value })}>
+          <option value="">Любой readiness</option>
+          <option value="READY">Готов</option>
+          <option value="NEEDS_ATTENTION">Нужно внимание</option>
+          <option value="BLOCKED">Заблокирован</option>
+        </Select>
+        <Select value={filters.poolId} onChange={(e) => setFilters({ ...filters, poolId: e.target.value })}>
+          <option value="">Все пулы</option>
+          {pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </Select>
 
-      {loading ? <Empty text="Загрузка кабинетов..." /> : accounts.length === 0 ? <Empty text="Кабинетов пока нет. Добавьте вручную или загрузите mock данные." /> : (
+        {selectedIds.length > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[12px] text-muted">Выбрано: <strong className="text-ink">{selectedIds.length}</strong></span>
+            <Button variant="ghost" size="sm" onClick={() => healthCheck(selectedIds)}>
+              <Activity size={12} /> Health Check
+            </Button>
+            <Select value={targetPoolId} onChange={(e) => setTargetPoolId(e.target.value)} className="h-7 text-[12px]">
+              <option value="">Добавить в пул…</option>
+              {pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+            {targetPoolId && (
+              <Button size="sm" onClick={addToPool}>Применить</Button>
+            )}
+          </div>
+        )}
+      </FilterBar>
+
+      {/* Table */}
+      {loading ? (
+        <Loading />
+      ) : accounts.length === 0 ? (
+        <Empty icon={BriefcaseBusiness} text="Кабинетов пока нет. Добавьте вручную или загрузите mock данные." />
+      ) : (
         <Table>
-          <table className="w-full min-w-[1180px] text-left text-sm">
-            <thead className="bg-field text-xs text-slate-500">
-              <tr>
-                <th className="p-3"><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? accounts.map((account) => account.id) : [])} /></th>
-                <th>Кабинет</th>
-                <th>External ID</th>
-                <th>Meta</th>
-                <th>Readiness</th>
-                <th>Score</th>
-                <th>Token</th>
-                <th>Billing</th>
-                <th>Лимит</th>
-                <th>Пулы</th>
-                <th>Проверка</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((account) => (
-                <tr key={account.id} className="border-t border-line">
-                  <td className="p-3"><input type="checkbox" checked={selectedIds.includes(account.id)} onChange={() => toggleSelected(account.id)} /></td>
-                  <td className="font-bold">{account.name}<div className="text-xs font-normal text-slate-500">{account.timezone}</div></td>
-                  <td>{account.externalId}</td>
-                  <td><Badge tone={statusTone(account.status)}>{ru(account.status)}</Badge></td>
-                  <td><Badge tone={statusTone(account.readinessStatus)}>{ru(account.readinessStatus)}</Badge></td>
-                  <td className="font-bold">{account.readinessScore}</td>
-                  <td><Badge tone={statusTone(account.tokenStatus)}>{ru(account.tokenStatus)}</Badge></td>
-                  <td><Badge tone={account.billingStatus === "OK" ? "good" : account.billingStatus === "ISSUE" ? "bad" : "neutral"}>{ru(account.billingStatus)}</Badge></td>
-                  <td>{account.spendLimit ? money(account.spendLimit, account.currency) : "-"}</td>
-                  <td className="max-w-[220px]">
-                    <div className="flex flex-wrap gap-1">
-                      {account.pools?.length ? account.pools.map(({ pool }) => pool && <span key={pool.id} className="rounded px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: `${pool.color}16`, color: pool.color }}>{pool.name}</span>) : "-"}
-                    </div>
-                  </td>
-                  <td>{account.lastHealthCheckAt ? new Date(account.lastHealthCheckAt).toLocaleString("ru-RU") : "-"}</td>
-                  <td className="flex gap-2 py-3 pr-3">
-                    <button className="font-bold text-blue-600" onClick={() => healthCheck([account.id])}>Проверить</button>
-                    <button className="font-bold text-slate-500" onClick={() => archive(account.id)}><Archive className="inline" size={14} /> Архив</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <thead>
+            <tr>
+              <Th className="w-8">
+                <input
+                  type="checkbox"
+                  className="accent-brand"
+                  checked={allSelected}
+                  onChange={(e) => setSelectedIds(e.target.checked ? accounts.map((a) => a.id) : [])}
+                />
+              </Th>
+              <Th>Кабинет</Th>
+              <Th>External ID</Th>
+              <Th>Meta статус</Th>
+              <Th>Readiness</Th>
+              <Th>Score</Th>
+              <Th>Token</Th>
+              <Th>Billing</Th>
+              <Th>Лимит</Th>
+              <Th>Пулы</Th>
+              <Th>Последняя проверка</Th>
+              <Th />
+            </tr>
+          </thead>
+          <tbody>
+            {accounts.map((a) => (
+              <Tr key={a.id} selected={selectedIds.includes(a.id)}>
+                <Td className="w-8">
+                  <input
+                    type="checkbox"
+                    className="accent-brand"
+                    checked={selectedIds.includes(a.id)}
+                    onChange={() => toggle(a.id)}
+                  />
+                </Td>
+                <Td>
+                  <div className="font-medium text-ink">{a.name}</div>
+                  <div className="text-[11px] text-muted">{a.timezone}</div>
+                </Td>
+                <Td>
+                  <span className="font-mono text-[11px] text-muted">{a.externalId}</span>
+                </Td>
+                <Td><Badge tone={statusTone(a.status)} dot>{ru(a.status)}</Badge></Td>
+                <Td><Badge tone={statusTone(a.readinessStatus)} dot>{ru(a.readinessStatus)}</Badge></Td>
+                <Td><ScoreBar score={a.readinessScore} /></Td>
+                <Td><Badge tone={statusTone(a.tokenStatus)}>{ru(a.tokenStatus)}</Badge></Td>
+                <Td>
+                  <Badge tone={a.billingStatus === "OK" ? "good" : a.billingStatus === "ISSUE" ? "bad" : "neutral"}>
+                    {ru(a.billingStatus)}
+                  </Badge>
+                </Td>
+                <Td>
+                  <span className="font-mono text-[12px]">
+                    {a.spendLimit ? money(a.spendLimit, a.currency) : <span className="text-muted">—</span>}
+                  </span>
+                </Td>
+                <Td>
+                  <div className="flex flex-wrap gap-1">
+                    {a.pools?.length
+                      ? a.pools.map(({ pool }) =>
+                          pool && (
+                            <span
+                              key={pool.id}
+                              className="rounded px-1.5 py-0.5 text-[11px] font-semibold"
+                              style={{ backgroundColor: `${pool.color}18`, color: pool.color }}
+                            >
+                              {pool.name}
+                            </span>
+                          )
+                        )
+                      : <span className="text-muted">—</span>}
+                  </div>
+                </Td>
+                <Td>
+                  <span className="text-[11px] text-muted">
+                    {a.lastHealthCheckAt
+                      ? new Date(a.lastHealthCheckAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+                      : "—"}
+                  </span>
+                </Td>
+                <Td className="whitespace-nowrap">
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => healthCheck([a.id])}>
+                      <Activity size={12} />
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => api.archiveAccounts([a.id], true).then(load)}>
+                      <Archive size={12} />
+                    </Button>
+                  </div>
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
         </Table>
       )}
     </div>

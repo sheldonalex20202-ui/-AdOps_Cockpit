@@ -1,10 +1,11 @@
+import { FileClock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Badge, Empty, Table } from "@/components/ui";
+import { Badge, Empty, Loading, PageHeader, Table, Td, Th, Tr } from "@/components/ui";
 import * as api from "@/lib/api";
 
 type AuditLog = {
   id: string; action: string; objectType: string; objectId?: string;
-  result: string; errorMessage?: string; createdAt: any;
+  result: string; errorMessage?: string; createdAt: string;
 };
 
 export function AuditClient() {
@@ -12,56 +13,67 @@ export function AuditClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void (async () => {
-      const res = await api.getAuditLogs(100, 0);
+    void api.getAuditLogs(100, 0).then((res) => {
       setLogs(res ?? []);
       setLoading(false);
-    })();
+    });
   }, []);
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-black">Журнал аудита</h1>
-        <p className="text-sm text-slate-500">Все действия пользователя в системе.</p>
-      </div>
+      <PageHeader
+        title="Журнал аудита"
+        subtitle="Все действия пользователя в системе"
+        icon={FileClock}
+        stats={[{ label: "записей", value: logs.length }]}
+      />
 
-      {loading ? <Empty text="Загрузка..." /> : logs.length === 0 ? (
-        <Empty text="Журнал пуст." />
+      {loading ? (
+        <Loading />
+      ) : logs.length === 0 ? (
+        <Empty icon={FileClock} text="Журнал пуст." />
       ) : (
         <Table>
-          <table className="w-full min-w-[700px] text-left text-sm">
-            <thead className="bg-field text-xs text-slate-500">
-              <tr>
-                <th className="p-3">Время</th>
-                <th>Действие</th>
-                <th>Объект</th>
-                <th>ID</th>
-                <th>Результат</th>
-                <th>Ошибка</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} className="border-t border-line">
-                  <td className="p-3 text-xs text-slate-500">
-                    {new Date(log.createdAt).toLocaleString("ru")}
-                  </td>
-                  <td className="font-mono text-xs font-bold">{log.action}</td>
-                  <td className="text-slate-600">{log.objectType}</td>
-                  <td className="font-mono text-xs text-slate-400">{log.objectId?.slice(0, 8) ?? "—"}</td>
-                  <td>
-                    <Badge tone={log.result === "SUCCESS" ? "good" : "bad"}>
-                      {log.result === "SUCCESS" ? "OK" : "FAIL"}
-                    </Badge>
-                  </td>
-                  <td className="max-w-[200px] truncate text-xs text-red-600">
-                    {log.errorMessage ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <thead>
+            <tr>
+              <Th>Время</Th>
+              <Th>Действие</Th>
+              <Th>Объект</Th>
+              <Th>ID</Th>
+              <Th>Результат</Th>
+              <Th>Ошибка</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((log) => (
+              <Tr key={log.id}>
+                <Td>
+                  <span className="text-[11px] text-muted tabular-nums">
+                    {new Date(log.createdAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </span>
+                </Td>
+                <Td>
+                  <span className="font-mono text-[12px] font-medium text-ink">{log.action}</span>
+                </Td>
+                <Td>
+                  <span className="text-[12px] text-muted">{log.objectType}</span>
+                </Td>
+                <Td>
+                  <span className="font-mono text-[11px] text-subtle">{log.objectId?.slice(0, 8) ?? "—"}</span>
+                </Td>
+                <Td>
+                  <Badge tone={log.result === "SUCCESS" ? "good" : "bad"}>
+                    {log.result === "SUCCESS" ? "OK" : "FAIL"}
+                  </Badge>
+                </Td>
+                <Td className="max-w-[240px]">
+                  <span className="truncate text-[11px] text-danger block">
+                    {log.errorMessage ?? <span className="text-muted">—</span>}
+                  </span>
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
         </Table>
       )}
     </div>

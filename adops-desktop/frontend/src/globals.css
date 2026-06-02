@@ -8,44 +8,50 @@
 /* ── Light theme ─────────────────────────────────────────────── */
 :root {
   color-scheme: light;
-  --surface:   #f5f5f5;
-  --panel:     #ebebeb;
-  --card:      #ffffff;
-  --raised:    #e0e0e0;
-  --selected:  #dbeafe;
-  --stroke:    #d4d4d4;
-  --ink:       #1e1e1e;
-  --muted:     #6b6b6b;
-  --brand:     #2563eb;
-  --brand-dim: #1d4ed8;
-  --brand-fg:  #ffffff;
-  --danger:    #dc2626;
-  --success:   #16a34a;
-  --warn:      #d97706;
+  --surface:    #f6f6f7;
+  --panel:      #efefef;
+  --card:       #ffffff;
+  --raised:     #e8e8ea;
+  --selected:   #eff6ff;
+  --stroke:     #e0e0e2;
+  --ink:        #18181b;
+  --muted:      #71717a;
+  --subtle:     #a1a1aa;
+  --brand:      #2563eb;
+  --brand-dim:  #1d4ed8;
+  --brand-fg:   #ffffff;
+  --brand-soft: #eff6ff;
+  --danger:     #dc2626;
+  --success:    #16a34a;
+  --warn:       #d97706;
+  --info:       #0891b2;
 }
 
-/* ── Dark theme (follows Windows system setting) ─────────────── */
+/* ── Dark theme ───────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --surface:   #1e1e1e;
-    --panel:     #252526;
-    --card:      #2d2d30;
-    --raised:    #37373d;
-    --selected:  #1d3a5e;
-    --stroke:    #3e3e42;
-    --ink:       #d4d4d4;
-    --muted:     #8b8b8b;
-    --brand:     #4d9ef6;
-    --brand-dim: #3b82f6;
-    --brand-fg:  #ffffff;
-    --danger:    #f87171;
-    --success:   #4ade80;
-    --warn:      #fbbf24;
+    --surface:    #0f0f11;
+    --panel:      #141416;
+    --card:       #1c1c1f;
+    --raised:     #242428;
+    --selected:   #172038;
+    --stroke:     #2d2d34;
+    --ink:        #e8e8ea;
+    --muted:      #71717a;
+    --subtle:     #52525b;
+    --brand:      #3b82f6;
+    --brand-dim:  #2563eb;
+    --brand-fg:   #ffffff;
+    --brand-soft: #172038;
+    --danger:     #f87171;
+    --success:    #4ade80;
+    --warn:       #fbbf24;
+    --info:       #22d3ee;
   }
 }
 
-/* ── Base reset ───────────────────────────────────────────────── */
+/* ── Base ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -53,14 +59,28 @@ body {
   background: var(--surface);
   color: var(--ink);
   font-family: "Geist Variable", system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
 button, input, select, textarea { font: inherit; }
 
-/* ── Update banner animations ────────────────────────────────── */
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--stroke); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+* { scrollbar-width: thin; scrollbar-color: var(--stroke) transparent; }
+
+/* ── Focus ring ───────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(250%); }
@@ -69,39 +89,43 @@ button, input, select, textarea { font: inherit; }
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(350%); }
 }
-
-/* ── Step / card animations ──────────────────────────────────── */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes slideInFromRight {
-  from { opacity: 0; transform: translateX(24px); }
+  from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes slideInFromLeft {
-  from { opacity: 0; transform: translateX(-24px); }
+  from { opacity: 0; transform: translateX(-20px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
 @keyframes countPop {
   0%   { transform: scale(0.8); opacity: 0; }
-  60%  { transform: scale(1.08); }
+  60%  { transform: scale(1.06); }
   100% { transform: scale(1); opacity: 1; }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-.animate-fade-in-up       { animation: fadeInUp 200ms ease both; }
-.animate-slide-from-right { animation: slideInFromRight 200ms ease both; }
-.animate-slide-from-left  { animation: slideInFromLeft 200ms ease both; }
-.animate-scale-in         { animation: scaleIn 150ms ease both; }
-.animate-count-pop        { animation: countPop 350ms cubic-bezier(.34,1.56,.64,1) both; }
+.animate-fade-in-up       { animation: fadeInUp 180ms ease both; }
+.animate-slide-from-right { animation: slideInFromRight 180ms ease both; }
+.animate-slide-from-left  { animation: slideInFromLeft 180ms ease both; }
+.animate-scale-in         { animation: scaleIn 140ms ease both; }
+.animate-count-pop        { animation: countPop 320ms cubic-bezier(.34,1.56,.64,1) both; }
+.animate-spin             { animation: spin 0.8s linear infinite; }
 
-/* ── Scrollbar ────────────────────────────────────────────────── */
-::-webkit-scrollbar          { width: 6px; height: 6px; }
-::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: var(--stroke); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-* { scrollbar-width: thin; scrollbar-color: var(--stroke) transparent; }
+/* ── Update banner ────────────────────────────────────────────── */
+.shimmer-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+  animation: shimmer 1.5s ease infinite;
+}

@@ -22,7 +22,11 @@ const config: Config = {
         "brand-fg": "var(--brand-fg)",
         danger:     "var(--danger)",
         success:    "var(--success)",
-        // legacy aliases — page components still use these
+        warn:       "var(--warn)",
+        info:       "var(--info)",
+        subtle:     "var(--subtle)",
+        "brand-soft": "var(--brand-soft)",
+        // legacy aliases
         line:       "var(--stroke)",
         field:      "var(--card)",
       },

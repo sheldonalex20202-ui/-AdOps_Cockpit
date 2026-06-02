@@ -1,15 +1,20 @@
-import { Activity, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Badge, Button, Card, Empty, Table, statusTone } from "@/components/ui";
+import { Activity, RefreshCw, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Badge, Button, Loading, Empty, PageHeader, ScoreBar, Table, Td, Th, Tr, statusTone } from "@/components/ui";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
 
-type Account = { id: string; name: string; externalId: string; readinessStatus: string; readinessScore: number };
+type Account = {
+  id: string; name: string; externalId: string;
+  readinessStatus: string; readinessScore: number;
+  status: string; tokenStatus: string; billingStatus: string;
+  lastHealthCheckAt?: string;
+};
 
 export function HealthClient() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState<string[]>([]);
+  const [running, setRunning] = useState<Set<string>>(new Set());
 
   async function load() {
     setLoading(true);
@@ -21,89 +26,111 @@ export function HealthClient() {
   useEffect(() => { void load(); }, []);
 
   async function runCheck(id: string) {
-    setRunning((r) => [...r, id]);
+    setRunning((r) => new Set([...r, id]));
     await api.runHealthCheck(id);
     await load();
-    setRunning((r) => r.filter((x) => x !== id));
+    setRunning((r) => { const n = new Set(r); n.delete(id); return n; });
   }
 
   async function runAll() {
     const ids = accounts.map((a) => a.id);
-    setRunning(ids);
+    setRunning(new Set(ids));
     await api.runBulkHealthCheck(ids);
     await load();
-    setRunning([]);
+    setRunning(new Set());
   }
+
+  const stats = useMemo(() => ({
+    ready:  accounts.filter((a) => a.readinessStatus === "READY").length,
+    issues: accounts.filter((a) => a.readinessScore < 50).length,
+    avg:    accounts.length
+      ? Math.round(accounts.reduce((s, a) => s + a.readinessScore, 0) / accounts.length)
+      : 0,
+  }), [accounts]);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black">Health Checks</h1>
-          <p className="text-sm text-slate-500">Readiness score 0–100 для каждого кабинета.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={load}><RefreshCw size={16} /> Обновить</Button>
-          <Button onClick={runAll} disabled={running.length > 0}>
-            <Activity size={16} /> Проверить все
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Health Checks"
+        subtitle="Readiness score 0–100 — токен, биллинг, лимиты, статус кабинета"
+        icon={ShieldCheck}
+        stats={[
+          { label: "кабинетов",  value: accounts.length },
+          { label: "готовы",     value: stats.ready,  tone: "good" },
+          { label: "проблемных", value: stats.issues,  tone: stats.issues > 0 ? "bad" : "good" },
+          { label: "avg score",  value: stats.avg },
+        ]}
+        actions={
+          <>
+            <Button variant="ghost" size="sm" onClick={load}><RefreshCw size={13} /> Обновить</Button>
+            <Button size="sm" onClick={runAll} disabled={running.size > 0}>
+              <Activity size={13} /> Проверить все
+            </Button>
+          </>
+        }
+      />
 
-      {loading ? <Empty text="Загрузка..." /> : accounts.length === 0 ? (
-        <Empty text="Нет кабинетов. Добавьте их в разделе «Мои кабинеты»." />
+      {loading ? (
+        <Loading />
+      ) : accounts.length === 0 ? (
+        <Empty icon={ShieldCheck} text="Нет кабинетов. Добавьте их в разделе «Мои кабинеты»." />
       ) : (
         <Table>
-          <table className="w-full min-w-[600px] text-left text-sm">
-            <thead className="bg-field text-xs text-slate-500">
-              <tr>
-                <th className="p-3">Кабинет</th>
-                <th>Ext ID</th>
-                <th>Readiness</th>
-                <th>Score</th>
-                <th className="pr-3 text-right">Действие</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((acc) => (
-                <tr key={acc.id} className="border-t border-line">
-                  <td className="p-3 font-bold">{acc.name}</td>
-                  <td className="text-xs text-slate-500">{acc.externalId}</td>
-                  <td><Badge tone={statusTone(acc.readinessStatus)}>{ru(acc.readinessStatus)}</Badge></td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-raised">
-                        <div className="h-1.5 rounded-full bg-brand" style={{ width: `${acc.readinessScore}%` }} />
-                      </div>
-                      <span className="text-xs font-bold">{acc.readinessScore}</span>
-                    </div>
-                  </td>
-                  <td className="pr-3 text-right">
-                    <Button variant="ghost" onClick={() => runCheck(acc.id)} disabled={running.includes(acc.id)}>
-                      {running.includes(acc.id) ? "..." : <><Activity size={13} /> Check</>}
+          <thead>
+            <tr>
+              <Th>Кабинет</Th>
+              <Th>Score</Th>
+              <Th>Readiness</Th>
+              <Th>Meta</Th>
+              <Th>Token</Th>
+              <Th>Billing</Th>
+              <Th>Последняя проверка</Th>
+              <Th />
+            </tr>
+          </thead>
+          <tbody>
+            {accounts
+              .slice()
+              .sort((a, b) => a.readinessScore - b.readinessScore)
+              .map((a) => (
+                <Tr key={a.id}>
+                  <Td>
+                    <div className="font-medium text-ink">{a.name}</div>
+                    <div className="font-mono text-[11px] text-muted">{a.externalId}</div>
+                  </Td>
+                  <Td><ScoreBar score={a.readinessScore} /></Td>
+                  <Td><Badge tone={statusTone(a.readinessStatus)} dot>{ru(a.readinessStatus)}</Badge></Td>
+                  <Td><Badge tone={statusTone(a.status)} dot>{ru(a.status)}</Badge></Td>
+                  <Td><Badge tone={statusTone(a.tokenStatus)}>{ru(a.tokenStatus)}</Badge></Td>
+                  <Td>
+                    <Badge tone={a.billingStatus === "OK" ? "good" : a.billingStatus === "ISSUE" ? "bad" : "neutral"}>
+                      {ru(a.billingStatus)}
+                    </Badge>
+                  </Td>
+                  <Td>
+                    <span className="text-[11px] text-muted">
+                      {a.lastHealthCheckAt
+                        ? new Date(a.lastHealthCheckAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+                        : "Не проверялся"}
+                    </span>
+                  </Td>
+                  <Td>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={running.has(a.id)}
+                      onClick={() => runCheck(a.id)}
+                    >
+                      {running.has(a.id)
+                        ? <span className="animate-spin inline-block h-3 w-3 rounded-full border-2 border-stroke border-t-brand" />
+                        : <Activity size={12} />}
+                      Проверить
                     </Button>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
+          </tbody>
         </Table>
-      )}
-
-      {accounts.length > 0 && (
-        <Card>
-          <div className="grid grid-cols-3 gap-4 text-center text-sm">
-            {(["READY", "NEEDS_ATTENTION", "BLOCKED"] as const).map((s) => {
-              const count = accounts.filter((a) => a.readinessStatus === s).length;
-              return (
-                <div key={s}>
-                  <div className="text-xl font-black">{count}</div>
-                  <Badge tone={statusTone(s)}>{ru(s)}</Badge>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
       )}
     </div>
   );
