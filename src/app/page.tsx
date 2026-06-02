@@ -4,6 +4,7 @@ import { HeroBackground } from "@/components/HeroBackground";
 import { AnimatedStats } from "@/components/AnimatedStats";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import { AppMockup } from "@/components/AppMockup";
+import MinimalHero from "@/components/ui/minimal-hero";
 
 const painPoints = [
   { icon: Clock,         title: "6 часов ручного залива",    desc: "Открываешь каждый кабинет по одному, настраиваешь вручную, ошибаешься, переделываешь." },
@@ -58,75 +59,39 @@ export default function HomePage() {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
+      <section className="relative min-h-screen overflow-hidden pt-14">
         <HeroBackground />
         <div className="hero-gradient-overlay absolute inset-0 pointer-events-none" />
 
-        <div className="relative z-10 mx-auto max-w-4xl px-4 py-32 text-center">
-          <div
-            className="animate-badge-pop mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-300"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-glow-pulse" />
-            Инструмент №1 для медиабаера
-          </div>
-
-          <h1
-            className="animate-hero-fade-up mb-6 text-5xl font-black tracking-tight sm:text-7xl leading-[1.05]"
-            style={{ animationDelay: "0.2s" }}
-          >
-            Залив 50+ кабинетов{" "}
-            <br />
-            <span className="gradient-text">за 15 минут</span>
-          </h1>
-
-          <p
-            className="animate-hero-fade-up mx-auto mb-10 max-w-2xl text-lg text-zinc-400 leading-relaxed"
-            style={{ animationDelay: "0.35s" }}
-          >
-            Тратишь 6 часов на ручной залив? С AdOps Cockpit это займёт{" "}
-            <span className="text-zinc-200 font-semibold">15 минут</span>. Автоматизируй рутину —
-            масштабируй доход.{" "}
-            <span className="text-zinc-200 font-semibold">Купил подписку — увеличил доход в 2 раза.</span>
-          </p>
-
-          <div
-            className="animate-hero-fade-up flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
-            style={{ animationDelay: "0.5s" }}
-          >
-            <a
-              href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe"
-              className="animate-glow-pulse flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-500 shadow-lg shadow-blue-900/40"
-            >
-              <Monitor size={16} />
-              Скачать для Windows
-            </a>
-            <a
-              href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg"
-              className="flex items-center gap-2 rounded-xl border border-zinc-700/80 bg-zinc-900/60 px-7 py-3.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/60"
-            >
-              <Apple size={16} />
-              Скачать для macOS
-            </a>
-          </div>
-
-          <p
-            className="animate-hero-fade-up mt-5 text-xs text-zinc-600"
-            style={{ animationDelay: "0.65s" }}
-          >
-            Windows · macOS Apple Silicon ·{" "}
-            <a
-              href="https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-intel.dmg"
-              className="underline underline-offset-2 hover:text-zinc-400 transition-colors"
-            >
-              macOS Intel
-            </a>{" "}
-            · Бесплатный тариф
-          </p>
-        </div>
+        <MinimalHero
+          badge="Инструмент №1 для медиабаера"
+          title={
+            <>
+              Залив 50+ кабинетов{" "}
+              <br />
+              <span className="gradient-text">за 15 минут</span>
+            </>
+          }
+          description="Тратишь 6 часов на ручной залив? С AdOps Cockpit это займёт 15 минут. Автоматизируй рутину — масштабируй доход. Купил подписку — увеличил доход в 2 раза."
+          primaryButton={{
+            label: "⬇ Скачать для Windows",
+            href: "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe",
+          }}
+          secondaryButton={{
+            label: " Скачать для macOS",
+            href: "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg",
+          }}
+          stats={[
+            { value: "90%",   label: "экономия времени" },
+            { value: "50+",   label: "кабинетов сразу" },
+            { value: "15 мин", label: "на запуск" },
+            { value: "2×",    label: "рост дохода" },
+          ]}
+          accentColor="#3b82f6"
+        />
 
         {/* scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-zinc-600 animate-bounce">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce pointer-events-none">
           <div className="h-6 w-px bg-gradient-to-b from-transparent to-zinc-600 rounded" />
         </div>
       </section>
