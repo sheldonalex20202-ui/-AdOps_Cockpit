@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { Monitor, Apple, ArrowRight, Clock, Zap, Shield, Layers, BarChart3, AlertTriangle, XCircle, Timer, TrendingUp } from "lucide-react";
 import { HeroBackground } from "@/components/HeroBackground";
-import { AnimatedStats } from "@/components/AnimatedStats";
-import { ContainerScroll } from "@/components/ui/container-scroll-animation";
-import { AppMockup } from "@/components/AppMockup";
-import MinimalHero from "@/components/ui/minimal-hero";
-import { HeroVisual } from "@/components/HeroVisual";
+import { HeroSection9 } from "@/components/blocks/hero-section-9";
 
 const painPoints = [
   { icon: Clock,         title: "6 часов ручного залива",    desc: "Открываешь каждый кабинет по одному, настраиваешь вручную, ошибаешься, переделываешь." },
@@ -60,64 +56,10 @@ export default function HomePage() {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────── */}
-      <section className="relative min-h-screen overflow-hidden pt-14">
+      <section className="relative overflow-hidden pt-14">
         <HeroBackground />
         <div className="hero-gradient-overlay absolute inset-0 pointer-events-none" />
-
-        <MinimalHero
-          badge="Инструмент №1 для медиабаера"
-          title={
-            <>
-              Залив 50+ кабинетов{" "}
-              <br />
-              <span className="gradient-text">за 15 минут</span>
-            </>
-          }
-          description="Тратишь 6 часов на ручной залив? С AdOps Cockpit это займёт 15 минут. Автоматизируй рутину — масштабируй доход. Купил подписку — увеличил доход в 2 раза."
-          primaryButton={{
-            label: "⬇ Скачать для Windows",
-            href: "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-windows-installer.exe",
-          }}
-          secondaryButton={{
-            label: " Скачать для macOS",
-            href: "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest/download/AdOpsCockpit-macos-arm64.dmg",
-          }}
-          stats={[
-            { value: "90%",   label: "экономия времени" },
-            { value: "50+",   label: "кабинетов сразу" },
-            { value: "15 мин", label: "на запуск" },
-            { value: "2×",    label: "рост дохода" },
-          ]}
-          accentColor="#3b82f6"
-          visual={<HeroVisual />}
-        />
-
-        {/* scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce pointer-events-none">
-          <div className="h-6 w-px bg-gradient-to-b from-transparent to-zinc-600 rounded" />
-        </div>
-      </section>
-
-      {/* ── App preview scroll ─────────────────────────── */}
-      <section className="bg-zinc-950">
-        <ContainerScroll
-          titleComponent={
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-400/80">
-                Интерфейс
-              </p>
-              <h2 className="text-3xl font-black text-zinc-100 sm:text-5xl leading-tight">
-                Всё управление кабинетами —{" "}
-                <span className="gradient-text">в одном экране</span>
-              </h2>
-              <p className="mt-4 text-zinc-500 text-base max-w-xl mx-auto">
-                Аккаунты, health scores, статусы, пулы и запуск залива — без таблиц, без хаоса.
-              </p>
-            </div>
-          }
-        >
-          <AppMockup />
-        </ContainerScroll>
+        <HeroSection9 />
       </section>
 
       {/* ── Pain section ───────────────────────────────── */}
