@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Monitor, Apple, ArrowRight, Clock, Zap, Shield, Layers, BarChart3, AlertTriangle, XCircle, Timer, TrendingUp } from "lucide-react";
 import { HeroBackground } from "@/components/HeroBackground";
 import { AnimatedStats } from "@/components/AnimatedStats";
+import { ContainerScroll } from "@/components/ui/container-scroll-animation";
+import { AppMockup } from "@/components/AppMockup";
 
 const painPoints = [
   { icon: Clock,         title: "6 часов ручного залива",    desc: "Открываешь каждый кабинет по одному, настраиваешь вручную, ошибаешься, переделываешь." },
@@ -131,6 +133,28 @@ export default function HomePage() {
 
       {/* ── Stats ──────────────────────────────────────── */}
       <AnimatedStats />
+
+      {/* ── App preview scroll ─────────────────────────── */}
+      <section className="bg-zinc-950">
+        <ContainerScroll
+          titleComponent={
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-400/80">
+                Интерфейс
+              </p>
+              <h2 className="text-3xl font-black text-zinc-100 sm:text-5xl leading-tight">
+                Всё управление кабинетами —{" "}
+                <span className="gradient-text">в одном экране</span>
+              </h2>
+              <p className="mt-4 text-zinc-500 text-base max-w-xl mx-auto">
+                Аккаунты, health scores, статусы, пулы и запуск залива — без таблиц, без хаоса.
+              </p>
+            </div>
+          }
+        >
+          <AppMockup />
+        </ContainerScroll>
+      </section>
 
       {/* ── Pain section ───────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-4 py-28">
