@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Monitor, Apple, ArrowRight, Clock, Zap, Shield, Layers, BarChart3, AlertTriangle, XCircle, Timer, TrendingUp } from "lucide-react";
 import { HeroBackground } from "@/components/HeroBackground";
 import { HeroSection9 } from "@/components/blocks/hero-section-9";
+import { ContainerScroll } from "@/components/ui/container-scroll-animation";
+import { AppMockupInteractive } from "@/components/AppMockupInteractive";
 
 const painPoints = [
   { icon: Clock,         title: "6 часов ручного залива",    desc: "Открываешь каждый кабинет по одному, настраиваешь вручную, ошибаешься, переделываешь." },
@@ -120,6 +122,28 @@ export default function HomePage() {
             })}
           </div>
         </div>
+      </section>
+
+      {/* ── Interactive app preview ────────────────────── */}
+      <section className="bg-zinc-950">
+        <ContainerScroll
+          titleComponent={
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-400/80">
+                Живой интерфейс
+              </p>
+              <h2 className="text-3xl font-black text-zinc-100 sm:text-5xl leading-tight">
+                Попробуй прямо здесь —{" "}
+                <span className="gradient-text">нажми на вкладку</span>
+              </h2>
+              <p className="mt-4 text-zinc-500 text-base max-w-xl mx-auto">
+                Аккаунты, залив, креативы и история — полный рабочий цикл в одном инструменте.
+              </p>
+            </div>
+          }
+        >
+          <AppMockupInteractive />
+        </ContainerScroll>
       </section>
 
       {/* ── ROI callout ────────────────────────────────── */}
