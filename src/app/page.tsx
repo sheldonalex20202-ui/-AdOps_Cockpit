@@ -1,30 +1,50 @@
 import Link from "next/link";
-import { Monitor, Apple, ArrowRight, Clock, Zap, Shield, Layers, BarChart3, AlertTriangle, XCircle, Timer, TrendingUp } from "lucide-react";
+import { Monitor, Apple, ArrowRight, Zap, Shield, Layers, BarChart3, TrendingUp, Target, FileText } from "lucide-react";
 import { HeroBackground } from "@/components/HeroBackground";
 import { HeroSection9 } from "@/components/blocks/hero-section-9";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import { AppMockupInteractive } from "@/components/AppMockupInteractive";
+import { ProblemSolution } from "@/components/blocks/problem-solution";
+import { BentoGrid, type BentoItem } from "@/components/ui/bento-grid";
 
-const painPoints = [
-  { icon: Clock,         title: "6 часов ручного залива",    desc: "Открываешь каждый кабинет по одному, настраиваешь вручную, ошибаешься, переделываешь." },
-  { icon: AlertTriangle, title: "Кабинеты падают незаметно", desc: "Бан, израсходованный биллинг, просроченный токен — узнаёшь только когда бюджет уже слит." },
-  { icon: XCircle,       title: "Хаос в таблицах",           desc: "Аккаунты, статусы, крео — всё разбросано по Excel, Notion и ОЗУ твоей головы." },
-  { icon: Timer,         title: "Масштаб убивает скорость",  desc: "10 кабинетов — терпимо. 50 — уже невозможно. Рост стопорится из-за инструментов." },
+const bentoItems: BentoItem[] = [
+  {
+    title: "Массовый автозалив",
+    description: "Запускай кампании на 50+ кабинетах за 15 минут. CBO, ABO, Isolation, Z-Group — любая структура одним кликом.",
+    icon: <Zap className="w-4 h-4 text-blue-400" />,
+    status: "Core",
+    tags: ["CBO", "ABO", "Z-Group"],
+    colSpan: 2,
+    hasPersistentHover: true,
+  },
+  {
+    title: "Health Check",
+    description: "Score 0–100 перед каждым запуском. Токен, биллинг, лимиты — автоматически.",
+    icon: <Shield className="w-4 h-4 text-violet-400" />,
+    status: "Auto",
+    tags: ["Readiness"],
+  },
+  {
+    title: "Пулы кабинетов",
+    description: "Группируй по проектам, гео, командам. Залив по пулу за секунды.",
+    icon: <Layers className="w-4 h-4 text-indigo-400" />,
+    tags: ["Гео", "Команды"],
+  },
+  {
+    title: "Вертикальные пресеты",
+    description: "NUTRA / GAMBLING / CRYPTO / DATING / ECOM — пресеты с objective, bid strategy и бюджетом.",
+    icon: <Target className="w-4 h-4 text-pink-400" />,
+    tags: ["NUTRA", "GAMBLING", "CRYPTO"],
+  },
+  {
+    title: "История и аналитика",
+    description: "Все запуски с дрилдауном по каждому кабинету, процент успеха, быстрый re-launch одной кнопкой.",
+    icon: <BarChart3 className="w-4 h-4 text-emerald-400" />,
+    status: "New",
+    tags: ["История", "Re-launch"],
+    colSpan: 2,
+  },
 ];
-
-const features = [
-  { icon: Zap,      color: "blue",   title: "Массовый автозалив",       desc: "Запускай кампании на 50+ кабинетах за 15 минут. CBO, ABO, Isolation, Z-Group — любая структура одним кликом." },
-  { icon: Shield,   color: "violet", title: "Health Check кабинетов",    desc: "Readiness score 0–100. Токен, биллинг, лимиты, статус — проверяются автоматически перед каждым заливом." },
-  { icon: Layers,   color: "indigo", title: "Пулы и портфели",           desc: "Группируй кабинеты по проектам, гео, командам. Запускай залив по пулу за секунды." },
-  { icon: BarChart3, color: "purple", title: "История и аналитика",      desc: "Все запуски с детализацией по кабинетам, процент успеха, быстрый re-launch одной кнопкой." },
-];
-
-const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
-  blue:   { bg: "bg-blue-500/10",   text: "text-blue-400",   ring: "ring-blue-500/20" },
-  violet: { bg: "bg-violet-500/10", text: "text-violet-400", ring: "ring-violet-500/20" },
-  indigo: { bg: "bg-indigo-500/10", text: "text-indigo-400", ring: "ring-indigo-500/20" },
-  purple: { bg: "bg-purple-500/10", text: "text-purple-400", ring: "ring-purple-500/20" },
-};
 
 const steps = [
   { num: "01", title: "Скачай приложение",   desc: "Установи AdOps Cockpit на Windows или macOS. Занимает меньше минуты." },
@@ -64,64 +84,19 @@ export default function HomePage() {
         <HeroSection9 />
       </section>
 
-      {/* ── Pain section ───────────────────────────────── */}
-      <section className="mx-auto max-w-5xl px-4 py-28">
-        <div className="mb-14 text-center">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-red-400/80">Проблема</div>
-          <h2 className="text-3xl font-bold text-zinc-100">
-            Ручной залив — это{" "}
-            <span style={{ background: "linear-gradient(135deg, #f87171, #fb923c)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              потери денег и времени
-            </span>
-          </h2>
-          <p className="mt-3 text-zinc-500 max-w-md mx-auto">
-            Пока конкуренты масштабируются, ты теряешь часы на то, что можно автоматизировать.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {painPoints.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              className="card-glass rounded-xl p-6"
-            >
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 ring-1 ring-red-500/20 text-red-400">
-                <Icon size={17} />
-              </div>
-              <h3 className="mb-1.5 font-semibold text-zinc-100">{title}</h3>
-              <p className="text-sm text-zinc-500 leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ── Problem → Solution comparison ──────────────── */}
+      <ProblemSolution />
 
-      {/* ── Features ───────────────────────────────────── */}
-      <section className="border-t border-zinc-800/50 bg-gradient-to-b from-zinc-900/40 to-transparent">
-        <div className="mx-auto max-w-5xl px-4 py-28">
-          <div className="mb-14 text-center">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-400/80">Решение</div>
-            <h2 className="text-3xl font-bold text-zinc-100">
-              AdOps Cockpit — это{" "}
-              <span className="gradient-text">рычаг для масштаба</span>
-            </h2>
-            <p className="mt-3 text-zinc-500 max-w-md mx-auto">
-              Один инструмент заменяет десятки часов ручной работы в неделю.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {features.map(({ icon: Icon, color, title, desc }) => {
-              const c = colorMap[color];
-              return (
-                <div key={title} className="card-glass rounded-xl p-6">
-                  <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${c.bg} ring-1 ${c.ring} ${c.text}`}>
-                    <Icon size={17} />
-                  </div>
-                  <h3 className="mb-1.5 font-semibold text-zinc-100">{title}</h3>
-                  <p className="text-sm text-zinc-500 leading-relaxed">{desc}</p>
-                </div>
-              );
-            })}
-          </div>
+      {/* ── Bento features grid ────────────────────────── */}
+      <section className="border-t border-zinc-800/40 bg-gradient-to-b from-zinc-900/30 to-transparent py-20 px-4">
+        <div className="mb-12 text-center">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-400/80">Возможности</div>
+          <h2 className="text-3xl font-black text-zinc-100 sm:text-4xl">
+            Всё, что нужно баеру —{" "}
+            <span className="gradient-text">в одном инструменте</span>
+          </h2>
         </div>
+        <BentoGrid items={bentoItems} />
       </section>
 
       {/* ── Interactive app preview ────────────────────── */}
