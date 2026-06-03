@@ -30,6 +30,7 @@
 
 - [[14 Error Handling Process]]
 - [[15 Release and Verification Process]]
+- [[16 Auto-Update Process]]
 
 ## Универсальный шаблон процесса
 

@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "7bc3972f196259d4",
+        "id": "a1b85939f13eeeb7",
         "type": "tabs",
         "children": [
           {
-            "id": "ca37ab4185aa5ec8",
+            "id": "0ce803d9124f01e0",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "14 Infrastructure.md",
+                "file": "00 Home.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "14 Infrastructure"
+              "title": "00 Home"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "14 Infrastructure.md",
+                "file": "Processes/02 Web Login and Registration Process.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Обратные ссылки для 14 Infrastructure"
+              "title": "Обратные ссылки для 02 Web Login and Registration Process"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "14 Infrastructure.md",
+                "file": "Processes/02 Web Login and Registration Process.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Исходящие ссылки из 14 Infrastructure"
+              "title": "Исходящие ссылки из 02 Web Login and Registration Process"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "14 Infrastructure.md",
+                "file": "Processes/02 Web Login and Registration Process.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Структура 14 Infrastructure"
+              "title": "Структура 02 Web Login and Registration Process"
             }
           }
         ]
@@ -184,14 +184,36 @@
       "obsidian-importer:Open Importer": false
     }
   },
-  "active": "ca37ab4185aa5ec8",
+  "active": "0ce803d9124f01e0",
   "lastOpenFiles": [
-    "Processes/00 Process Map.md",
-    "00 Home.md.tmp.16532.2a80440c8d04",
-    "14 Infrastructure.md",
+    "00 Home.md",
+    "Processes/02 Web Login and Registration Process.md",
+    "Media Buying Research/04 Нейминг.md",
+    "Media Buying Research/00 Overview.md",
+    "04 Desktop App.md.tmp.29092.bc84c4877da6",
+    "00 Home.md.tmp.29092.0a90b4afccee",
+    "Media Buying Research/08 Метрики и аналитика.md",
+    "Media Buying Research/08 Метрики и аналитика.md.tmp.29092.21a4b51e7ed4",
+    "Media Buying Research/07 Команда.md",
+    "Media Buying Research/07 Команда.md.tmp.29092.161fefb25f33",
+    "Media Buying Research/06 Инструменты.md",
+    "Media Buying Research/06 Инструменты.md.tmp.29092.b1cdc9c4b1a4",
+    "Media Buying Research/05 Вертикали.md",
+    "Media Buying Research/05 Вертикали.md.tmp.29092.952f9e4ee5f8",
+    "Media Buying Research/04 Нейминг.md.tmp.29092.c4672cce8f72",
+    "04 Нейминг.md",
+    "Media Buying Research/03 Структура кампаний.md",
+    "Media Buying Research/03 Структура кампаний.md.tmp.29092.cd8e3467adc4",
+    "Media Buying Research/02 Инфраструктура.md",
+    "Media Buying Research/02 Инфраструктура.md.tmp.29092.071e0f43960e",
+    "Processes/04 Subscription Checkout Process.md",
+    "Media Buying Research/01 Связки и воронки.md",
+    "Media Buying Research/01 Связки и воронки.md.tmp.29092.d513af8388ce",
+    "Processes/16 Auto-Update Process.md",
     "13 Knowledge Base Methodology.md",
+    "14 Infrastructure.md",
+    "Processes/00 Process Map.md",
     "Templates/Process Template.md",
-    "Templates",
     "Processes/15 Release and Verification Process.md",
     "Processes/14 Error Handling Process.md",
     "Processes/13 Entitlements Process.md",
@@ -200,23 +222,6 @@
     "Processes/10 Headline Set Process.md",
     "Processes/09 Creative Management Process.md",
     "Processes/08 Health Check Process.md",
-    "Processes/07 Pool Management Process.md",
-    "Processes/06 Account Management Process.md",
-    "Processes/05 Stripe Webhook Process.md",
-    "Processes/04 Subscription Checkout Process.md",
-    "Processes/02 Web Login and Registration Process.md",
-    "Processes/03 Desktop Auth Callback Process.md",
-    "Processes/01 Desktop Startup Process.md",
-    "Processes",
-    "00 Home.md",
-    "03 Architecture Map.md",
-    "02 Product Methodology.md",
-    "01 System Overview.md",
-    "Без названия.base",
-    "99 Glossary.md",
-    "12 Roadmap.md",
-    "Без названия 1",
-    "Без названия.canvas",
-    "Без названия"
+    "Без названия.canvas"
   ]
 }
