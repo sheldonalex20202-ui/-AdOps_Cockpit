@@ -3,48 +3,64 @@ import { motion, AnimatePresence, type Transition } from "framer-motion";
 import clsx from "clsx";
 import {
   Activity, BriefcaseBusiness, FileClock, History, Image,
-  Layers3, Rocket, Settings, LogOut, ChevronRight,
+  Layers3, Rocket, Settings, Shield, TrendingUp, LogOut, ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import logoImg from "../assets/images/logo.png";
 
-/* ── nav items ─────────────────────────────────────────── */
-const icons: Record<string, LucideIcon> = {
-  launch:       Rocket,
-  history:      History,
-  creatives:    Image,
-  accounts:     BriefcaseBusiness,
-  pools:        Layers3,
-  health:       Activity,
-  audit:        FileClock,
-  integrations: Settings,
+/* ── nav groups ────────────────────────────────────────────── */
+
+type NavItem = {
+  page: string;
+  label: string;
+  Icon: LucideIcon;
+  disabled?: boolean;
+  badge?: string;
 };
 
-const nav = [
-  { page: "launch",         label: "Автозалив",      icon: "launch" },
-  { page: "launch-history", label: "История залива",  icon: "history" },
-  { page: "creatives",      label: "Креативы",        icon: "creatives" },
-  { page: "accounts",       label: "Мои кабинеты",   icon: "accounts" },
-  { page: "account-pools",  label: "Пулы",            icon: "pools" },
-  { page: "health-checks",  label: "Health checks",   icon: "health" },
-  { page: "audit-logs",     label: "Аудит",           icon: "audit" },
-  { page: "integrations",   label: "Интеграции",      icon: "integrations" },
+type NavGroup = {
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    items: [
+      { page: "launch",       label: "Автозалив",    Icon: Rocket },
+      { page: "autocontrol",  label: "Автоконтроль", Icon: Shield },
+      { page: "autoscale",    label: "Автоскейл",    Icon: TrendingUp, disabled: true, badge: "soon" },
+    ],
+  },
+  {
+    items: [
+      { page: "accounts",      label: "Мои кабинеты", Icon: BriefcaseBusiness },
+      { page: "account-pools", label: "Пулы",         Icon: Layers3 },
+      { page: "creatives",     label: "Креативы",     Icon: Image },
+    ],
+  },
+  {
+    items: [
+      { page: "launch-history", label: "История",      Icon: History },
+      { page: "audit-logs",     label: "Аудит",        Icon: FileClock },
+      { page: "integrations",   label: "Настройки",    Icon: Settings },
+      { page: "health-checks",  label: "Health checks", Icon: Activity },
+    ],
+  },
 ];
 
-/* ── framer variants ───────────────────────────────────── */
+/* ── framer variants ────────────────────────────────────────── */
 const sidebarVariants = {
   open:   { width: "14rem" },
   closed: { width: "3.25rem" },
 };
 
 const labelVariants = {
-  open:   { opacity: 1, x: 0,   display: "block" },
-  closed: { opacity: 0, x: -6,  transitionEnd: { display: "none" } },
+  open:   { opacity: 1, x: 0,  display: "block" },
+  closed: { opacity: 0, x: -6, transitionEnd: { display: "none" } },
 };
 
 const transition: Transition = { type: "tween", ease: "easeOut", duration: 0.18 };
 
-/* ── component ─────────────────────────────────────────── */
+/* ── component ──────────────────────────────────────────────── */
 interface Props {
   children: React.ReactNode;
   currentPage: string;
@@ -85,37 +101,64 @@ export function AppShell({ children, currentPage, onNavigate, user, onLogout, ve
           </motion.div>
         </div>
 
-        {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-2 space-y-0.5">
-          {nav.map((item) => {
-            const Icon = icons[item.icon] ?? BriefcaseBusiness;
-            const active = currentPage === item.page || currentPage.startsWith(item.page + "/");
-            return (
-              <button
-                key={item.page}
-                onClick={() => onNavigate(item.page)}
-                title={!open ? item.label : undefined}
-                className={clsx(
-                  "flex w-full items-center gap-2.5 rounded px-2 py-[7px] text-left transition-colors select-none",
-                  active
-                    ? "bg-selected text-brand"
-                    : "text-muted hover:bg-raised hover:text-ink"
-                )}
-              >
-                <Icon
-                  size={15}
-                  className={clsx("shrink-0", active ? "text-brand" : "text-muted")}
-                />
-                <motion.span
-                  variants={labelVariants}
-                  transition={transition}
-                  className="text-[13px] font-medium whitespace-nowrap overflow-hidden"
-                >
-                  {item.label}
-                </motion.span>
-              </button>
-            );
-          })}
+        {/* Nav groups */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-2 space-y-0">
+          {navGroups.map((group, gi) => (
+            <div key={gi}>
+              {/* Separator between groups */}
+              {gi > 0 && (
+                <div className="my-1.5 px-2">
+                  <div className="h-px bg-stroke" />
+                </div>
+              )}
+
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const { Icon } = item;
+                  const active = !item.disabled && (
+                    currentPage === item.page ||
+                    currentPage.startsWith(item.page + "/")
+                  );
+                  return (
+                    <button
+                      key={item.page}
+                      onClick={() => !item.disabled && onNavigate(item.page)}
+                      title={!open ? item.label : undefined}
+                      disabled={item.disabled}
+                      className={clsx(
+                        "flex w-full items-center gap-2.5 rounded px-2 py-[7px] text-left transition-colors select-none",
+                        item.disabled
+                          ? "cursor-default opacity-40 text-muted"
+                          : active
+                          ? "bg-selected text-brand"
+                          : "text-muted hover:bg-raised hover:text-ink"
+                      )}
+                    >
+                      <Icon
+                        size={15}
+                        className={clsx(
+                          "shrink-0",
+                          item.disabled ? "text-muted" : active ? "text-brand" : "text-muted"
+                        )}
+                      />
+                      <motion.span
+                        variants={labelVariants}
+                        transition={transition}
+                        className="flex flex-1 items-center gap-1.5 text-[13px] font-medium whitespace-nowrap overflow-hidden"
+                      >
+                        {item.label}
+                        {item.badge && (
+                          <span className="ml-auto rounded-full bg-raised px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted">
+                            {item.badge}
+                          </span>
+                        )}
+                      </motion.span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* User footer */}

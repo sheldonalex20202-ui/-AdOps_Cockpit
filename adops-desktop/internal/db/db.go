@@ -50,6 +50,11 @@ func migrate(db *gorm.DB) error {
 		&LaunchJob{},
 		&LaunchJobItem{},
 		&AppSettings{},
+		&AutocontrolConfig{},
+		&GeoRule{},
+		&PauseWindow{},
+		&AutocontrolCycle{},
+		&AutocontrolCycleItem{},
 	)
 }
 

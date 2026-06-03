@@ -15,6 +15,7 @@ import { CreativesClient }     from "./pages/creatives/CreativesClient";
 import { AuditClient }         from "./pages/audit-logs/AuditClient";
 import { IntegrationsClient }  from "./pages/integrations/IntegrationsClient";
 import { LaunchHistoryClient } from "./pages/launch-history/LaunchHistoryClient";
+import { AutocontrolClient }   from "./pages/autocontrol/AutocontrolClient";
 
 type User = { id: string; name: string; email: string };
 type AppState = "loading" | "login" | "app";
@@ -100,6 +101,7 @@ function LoginScreen({ onDone }: { onDone: (user: User) => void }) {
 function PageContent({ page }: { page: string }) {
   switch (page) {
     case "launch":          return <LaunchClient />;
+    case "autocontrol":     return <AutocontrolClient />;
     case "accounts":        return <AccountsClient />;
     case "account-pools":   return <AccountPoolsClient />;
     case "health-checks":   return <HealthClient />;

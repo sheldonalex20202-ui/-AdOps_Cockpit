@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"adops-desktop/internal/audit"
+	"adops-desktop/internal/autocontrol"
 	"adops-desktop/internal/authflow"
 	"adops-desktop/internal/db"
 	"adops-desktop/internal/health"
@@ -799,6 +800,279 @@ func (a *App) OpenReleasePage() {
 	if a.ctx != nil {
 		runtime.BrowserOpenURL(a.ctx, "https://github.com/sheldonalex20202-ui/-AdOps_Cockpit/releases/latest")
 	}
+}
+
+// ─── Autocontrol ─────────────────────────────────────────────────────────────
+
+type AutocontrolConfigResult struct {
+	Config db.AutocontrolConfig `json:"config"`
+	Error  string               `json:"error,omitempty"`
+}
+
+func (a *App) GetAutocontrolConfig() AutocontrolConfigResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutocontrolConfigResult{Error: "not_authenticated"}
+	}
+	var cfg db.AutocontrolConfig
+	res := a.gdb.Where("user_id = ?", a.currentUserID).First(&cfg)
+	if res.Error != nil {
+		cfg = db.AutocontrolConfig{
+			ID:              uuid.NewString(),
+			UserID:          a.currentUserID,
+			Enabled:         false,
+			IntervalMinutes: 20,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+	}
+	return AutocontrolConfigResult{Config: cfg}
+}
+
+func (a *App) SaveAutocontrolConfig(enabled bool, intervalMinutes int) error {
+	if a.currentUserID == "" {
+		return fmt.Errorf("not_authenticated")
+	}
+	var cfg db.AutocontrolConfig
+	res := a.gdb.Where("user_id = ?", a.currentUserID).First(&cfg)
+	if res.Error != nil {
+		cfg = db.AutocontrolConfig{
+			ID:        uuid.NewString(),
+			UserID:    a.currentUserID,
+			CreatedAt: time.Now(),
+		}
+	}
+	cfg.Enabled = enabled
+	cfg.IntervalMinutes = intervalMinutes
+	cfg.UpdatedAt = time.Now()
+	return a.gdb.Save(&cfg).Error
+}
+
+type GeoRulesResult struct {
+	Rules []db.GeoRule `json:"rules"`
+	Error string       `json:"error,omitempty"`
+}
+
+func (a *App) GetGeoRules() GeoRulesResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return GeoRulesResult{Error: "not_authenticated"}
+	}
+	var rules []db.GeoRule
+	a.gdb.Where("user_id = ?", a.currentUserID).Order("geo asc").Find(&rules)
+	return GeoRulesResult{Rules: rules}
+}
+
+type GeoRuleInput struct {
+	Geo              string   `json:"geo"`
+	Enabled          bool     `json:"enabled"`
+	MaxCPA           *float64 `json:"maxCpa"`
+	MaxSpendNoConv   *float64 `json:"maxSpendNoConv"`
+	MaxUCPCNoConv    *float64 `json:"maxUcpcNoConv"`
+	MaxSpendHighUCPC *float64 `json:"maxSpendHighUcpc"`
+}
+
+func (a *App) CreateGeoRule(input GeoRuleInput) (db.GeoRule, error) {
+	if a.currentUserID == "" {
+		return db.GeoRule{}, fmt.Errorf("not_authenticated")
+	}
+	rule := db.GeoRule{
+		ID:               uuid.NewString(),
+		UserID:           a.currentUserID,
+		Geo:              strings.ToUpper(strings.TrimSpace(input.Geo)),
+		Enabled:          input.Enabled,
+		MaxCPA:           input.MaxCPA,
+		MaxSpendNoConv:   input.MaxSpendNoConv,
+		MaxUCPCNoConv:    input.MaxUCPCNoConv,
+		MaxSpendHighUCPC: input.MaxSpendHighUCPC,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	return rule, a.gdb.Create(&rule).Error
+}
+
+func (a *App) UpdateGeoRule(id string, input GeoRuleInput) (db.GeoRule, error) {
+	if a.currentUserID == "" {
+		return db.GeoRule{}, fmt.Errorf("not_authenticated")
+	}
+	var rule db.GeoRule
+	if err := a.gdb.Where("id = ? AND user_id = ?", id, a.currentUserID).First(&rule).Error; err != nil {
+		return db.GeoRule{}, err
+	}
+	rule.Geo = strings.ToUpper(strings.TrimSpace(input.Geo))
+	rule.Enabled = input.Enabled
+	rule.MaxCPA = input.MaxCPA
+	rule.MaxSpendNoConv = input.MaxSpendNoConv
+	rule.MaxUCPCNoConv = input.MaxUCPCNoConv
+	rule.MaxSpendHighUCPC = input.MaxSpendHighUCPC
+	rule.UpdatedAt = time.Now()
+	return rule, a.gdb.Save(&rule).Error
+}
+
+func (a *App) DeleteGeoRule(id string) error {
+	if a.currentUserID == "" {
+		return fmt.Errorf("not_authenticated")
+	}
+	return a.gdb.Where("id = ? AND user_id = ?", id, a.currentUserID).Delete(&db.GeoRule{}).Error
+}
+
+type PauseWindowsResult struct {
+	Windows []db.PauseWindow `json:"windows"`
+	Error   string           `json:"error,omitempty"`
+}
+
+func (a *App) GetPauseWindows() PauseWindowsResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return PauseWindowsResult{Error: "not_authenticated"}
+	}
+	var windows []db.PauseWindow
+	a.gdb.Where("user_id = ?", a.currentUserID).Order("created_at asc").Find(&windows)
+	return PauseWindowsResult{Windows: windows}
+}
+
+type PauseWindowInput struct {
+	Label     string `json:"label"`
+	DayOfWeek int    `json:"dayOfWeek"`
+	StartHour int    `json:"startHour"`
+	EndHour   int    `json:"endHour"`
+	Enabled   bool   `json:"enabled"`
+}
+
+func (a *App) CreatePauseWindow(input PauseWindowInput) (db.PauseWindow, error) {
+	if a.currentUserID == "" {
+		return db.PauseWindow{}, fmt.Errorf("not_authenticated")
+	}
+	w := db.PauseWindow{
+		ID:        uuid.NewString(),
+		UserID:    a.currentUserID,
+		Label:     input.Label,
+		DayOfWeek: input.DayOfWeek,
+		StartHour: input.StartHour,
+		EndHour:   input.EndHour,
+		Enabled:   input.Enabled,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	return w, a.gdb.Create(&w).Error
+}
+
+func (a *App) DeletePauseWindow(id string) error {
+	if a.currentUserID == "" {
+		return fmt.Errorf("not_authenticated")
+	}
+	return a.gdb.Where("id = ? AND user_id = ?", id, a.currentUserID).Delete(&db.PauseWindow{}).Error
+}
+
+type AutocontrolCyclesResult struct {
+	Cycles []db.AutocontrolCycle `json:"cycles"`
+	Error  string                `json:"error,omitempty"`
+}
+
+func (a *App) GetAutocontrolCycles(limit int) AutocontrolCyclesResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutocontrolCyclesResult{Error: "not_authenticated"}
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	var cycles []db.AutocontrolCycle
+	a.gdb.Where("user_id = ?", a.currentUserID).Order("started_at desc").Limit(limit).Find(&cycles)
+	return AutocontrolCyclesResult{Cycles: cycles}
+}
+
+type AutocontrolCycleDetailResult struct {
+	Cycle db.AutocontrolCycle `json:"cycle"`
+	Error string              `json:"error,omitempty"`
+}
+
+func (a *App) GetAutocontrolCycleDetail(cycleID string) AutocontrolCycleDetailResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutocontrolCycleDetailResult{Error: "not_authenticated"}
+	}
+	var cycle db.AutocontrolCycle
+	if err := a.gdb.Where("id = ? AND user_id = ?", cycleID, a.currentUserID).
+		Preload("Items").First(&cycle).Error; err != nil {
+		return AutocontrolCycleDetailResult{Error: err.Error()}
+	}
+	return AutocontrolCycleDetailResult{Cycle: cycle}
+}
+
+func (a *App) ForceRunAutocontrol() AutocontrolCycleDetailResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutocontrolCycleDetailResult{Error: "not_authenticated"}
+	}
+
+	var accounts []db.MetaAdAccount
+	a.gdb.Where("user_id = ? AND archived = false", a.currentUserID).Find(&accounts)
+
+	var rules []db.GeoRule
+	a.gdb.Where("user_id = ?", a.currentUserID).Find(&rules)
+
+	cycle := db.AutocontrolCycle{
+		ID:        uuid.NewString(),
+		UserID:    a.currentUserID,
+		Status:    "RUNNING",
+		StartedAt: time.Now(),
+	}
+	a.gdb.Create(&cycle)
+
+	actions := autocontrol.Run(accounts, rules)
+
+	now := time.Now()
+	var paused, resumed, skipped int
+	var items []db.AutocontrolCycleItem
+
+	for _, act := range actions {
+		metricsJSON := db.JSON{}
+		for k, v := range act.Metrics {
+			metricsJSON[k] = v
+		}
+		item := db.AutocontrolCycleItem{
+			ID:            uuid.NewString(),
+			CycleID:       cycle.ID,
+			UserID:        a.currentUserID,
+			AdAccountID:   act.AdAccountID,
+			AdAccountName: act.AdAccountName,
+			AdSetID:       act.AdSetID,
+			AdSetName:     act.AdSetName,
+			Geo:           act.Geo,
+			Action:        act.Action,
+			Reason:        act.Reason,
+			MetricsJSON:   metricsJSON,
+			CreatedAt:     now,
+		}
+		items = append(items, item)
+		switch act.Action {
+		case "PAUSED":
+			paused++
+		case "RESUMED":
+			resumed++
+		case "SKIPPED":
+			skipped++
+		}
+	}
+
+	if len(items) > 0 {
+		a.gdb.Create(&items)
+	}
+
+	cycle.Status = "COMPLETED"
+	cycle.ActionsTaken = paused + resumed
+	cycle.Paused = paused
+	cycle.Resumed = resumed
+	cycle.Skipped = skipped
+	cycle.CompletedAt = &now
+	a.gdb.Save(&cycle)
+
+	a.gdb.Model(&db.AutocontrolConfig{}).Where("user_id = ?", a.currentUserID).
+		Update("last_run_at", now)
+
+	cycle.Items = items
+	return AutocontrolCycleDetailResult{Cycle: cycle}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

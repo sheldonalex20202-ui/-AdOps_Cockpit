@@ -272,3 +272,74 @@ type AppSettings struct {
 	LicenseValid bool      `gorm:"default:false" json:"licenseValid"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 }
+
+// ─── Autocontrol ──────────────────────────────────────────────────────────────
+
+// AutocontrolConfig — singleton per user
+type AutocontrolConfig struct {
+	ID              string     `gorm:"primaryKey;type:text" json:"id"`
+	UserID          string     `gorm:"uniqueIndex;type:text" json:"userId"`
+	Enabled         bool       `gorm:"default:false" json:"enabled"`
+	IntervalMinutes int        `gorm:"default:20" json:"intervalMinutes"`
+	LastRunAt       *time.Time `json:"lastRunAt"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+// GeoRule — one rule per GEO with CPA/spend thresholds
+type GeoRule struct {
+	ID               string    `gorm:"primaryKey;type:text" json:"id"`
+	UserID           string    `gorm:"index;type:text" json:"userId"`
+	Geo              string    `gorm:"type:text" json:"geo"`
+	Enabled          bool      `gorm:"default:true" json:"enabled"`
+	MaxCPA           *float64  `json:"maxCpa"`
+	MaxSpendNoConv   *float64  `json:"maxSpendNoConv"`
+	MaxUCPCNoConv    *float64  `json:"maxUcpcNoConv"`
+	MaxSpendHighUCPC *float64  `json:"maxSpendHighUcpc"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+// PauseWindow — global time window where autocontrol doesn't run
+type PauseWindow struct {
+	ID        string    `gorm:"primaryKey;type:text" json:"id"`
+	UserID    string    `gorm:"index;type:text" json:"userId"`
+	Label     string    `gorm:"type:text" json:"label"`
+	DayOfWeek int       `gorm:"default:-1" json:"dayOfWeek"` // -1=every day, 0=Sun..6=Sat
+	StartHour int       `json:"startHour"`
+	EndHour   int       `json:"endHour"`
+	Enabled   bool      `gorm:"default:true" json:"enabled"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// AutocontrolCycle — one scheduled run
+type AutocontrolCycle struct {
+	ID           string                 `gorm:"primaryKey;type:text" json:"id"`
+	UserID       string                 `gorm:"index;type:text" json:"userId"`
+	Status       string                 `gorm:"type:text;default:'RUNNING'" json:"status"`
+	ActionsTaken int                    `gorm:"default:0" json:"actionsTaken"`
+	Paused       int                    `gorm:"default:0" json:"paused"`
+	Resumed      int                    `gorm:"default:0" json:"resumed"`
+	Skipped      int                    `gorm:"default:0" json:"skipped"`
+	ErrorMessage *string                `gorm:"type:text" json:"errorMessage"`
+	StartedAt    time.Time              `json:"startedAt"`
+	CompletedAt  *time.Time             `json:"completedAt"`
+	Items        []AutocontrolCycleItem `gorm:"foreignKey:CycleID" json:"items,omitempty"`
+}
+
+// AutocontrolCycleItem — per-adset action within a cycle
+type AutocontrolCycleItem struct {
+	ID            string    `gorm:"primaryKey;type:text" json:"id"`
+	CycleID       string    `gorm:"index;type:text" json:"cycleId"`
+	UserID        string    `gorm:"index;type:text" json:"userId"`
+	AdAccountID   string    `gorm:"index;type:text" json:"adAccountId"`
+	AdAccountName string    `gorm:"type:text" json:"adAccountName"`
+	AdSetID       string    `gorm:"type:text" json:"adSetId"`
+	AdSetName     string    `gorm:"type:text" json:"adSetName"`
+	Geo           string    `gorm:"type:text" json:"geo"`
+	Action        string    `gorm:"type:text" json:"action"` // PAUSED, RESUMED, SKIPPED, NO_RULE
+	Reason        string    `gorm:"type:text" json:"reason"`
+	MetricsJSON   JSON      `gorm:"type:text" json:"metricsJson"`
+	CreatedAt     time.Time `json:"createdAt"`
+}

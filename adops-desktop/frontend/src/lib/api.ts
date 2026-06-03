@@ -141,3 +141,36 @@ export interface LaunchInput {
   campaignsPerAccount: number;
   config: Record<string, string>;
 }
+
+// ─── Autocontrol ──────────────────────────────────────────────────────────────
+
+export const getAutocontrolConfig = () => Go.GetAutocontrolConfig();
+export const saveAutocontrolConfig = (enabled: boolean, intervalMinutes: number) =>
+  Go.SaveAutocontrolConfig(enabled, intervalMinutes);
+export const getGeoRules = () => Go.GetGeoRules();
+export const createGeoRule = (input: GeoRuleInput) => Go.CreateGeoRule(input);
+export const updateGeoRule = (id: string, input: GeoRuleInput) => Go.UpdateGeoRule(id, input);
+export const deleteGeoRule = (id: string) => Go.DeleteGeoRule(id);
+export const getPauseWindows = () => Go.GetPauseWindows();
+export const createPauseWindow = (input: PauseWindowInput) => Go.CreatePauseWindow(input);
+export const deletePauseWindow = (id: string) => Go.DeletePauseWindow(id);
+export const forceRunAutocontrol = () => Go.ForceRunAutocontrol();
+export const getAutocontrolCycles = (limit?: number) => Go.GetAutocontrolCycles(limit ?? 20);
+export const getAutocontrolCycleDetail = (cycleId: string) => Go.GetAutocontrolCycleDetail(cycleId);
+
+export interface GeoRuleInput {
+  geo: string;
+  enabled: boolean;
+  maxCpa: number | null;
+  maxSpendNoConv: number | null;
+  maxUcpcNoConv: number | null;
+  maxSpendHighUcpc: number | null;
+}
+
+export interface PauseWindowInput {
+  label: string;
+  dayOfWeek: number;
+  startHour: number;
+  endHour: number;
+  enabled: boolean;
+}
