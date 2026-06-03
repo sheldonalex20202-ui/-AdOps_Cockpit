@@ -527,7 +527,139 @@ export namespace db {
 		    return a;
 		}
 	}
-	
+	export class AutocontrolConfig {
+	    id: string;
+	    userId: string;
+	    enabled: boolean;
+	    intervalMinutes: number;
+	    lastRunAt?: any;
+	    createdAt: any;
+	    updatedAt: any;
+
+	    static createFrom(source: any = {}) { return new AutocontrolConfig(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.enabled = source["enabled"];
+	        this.intervalMinutes = source["intervalMinutes"];
+	        this.lastRunAt = source["lastRunAt"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class GeoRule {
+	    id: string;
+	    userId: string;
+	    geo: string;
+	    enabled: boolean;
+	    maxCpa?: number;
+	    maxSpendNoConv?: number;
+	    maxUcpcNoConv?: number;
+	    maxSpendHighUcpc?: number;
+	    createdAt: any;
+	    updatedAt: any;
+
+	    static createFrom(source: any = {}) { return new GeoRule(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.geo = source["geo"];
+	        this.enabled = source["enabled"];
+	        this.maxCpa = source["maxCpa"];
+	        this.maxSpendNoConv = source["maxSpendNoConv"];
+	        this.maxUcpcNoConv = source["maxUcpcNoConv"];
+	        this.maxSpendHighUcpc = source["maxSpendHighUcpc"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class PauseWindow {
+	    id: string;
+	    userId: string;
+	    label: string;
+	    dayOfWeek: number;
+	    startHour: number;
+	    endHour: number;
+	    enabled: boolean;
+	    createdAt: any;
+	    updatedAt: any;
+
+	    static createFrom(source: any = {}) { return new PauseWindow(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.label = source["label"];
+	        this.dayOfWeek = source["dayOfWeek"];
+	        this.startHour = source["startHour"];
+	        this.endHour = source["endHour"];
+	        this.enabled = source["enabled"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class AutocontrolCycleItem {
+	    id: string;
+	    cycleId: string;
+	    userId: string;
+	    adAccountId: string;
+	    adAccountName: string;
+	    adSetId: string;
+	    adSetName: string;
+	    geo: string;
+	    action: string;
+	    reason: string;
+	    metricsJson: Record<string, any>;
+	    createdAt: any;
+
+	    static createFrom(source: any = {}) { return new AutocontrolCycleItem(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.cycleId = source["cycleId"];
+	        this.userId = source["userId"];
+	        this.adAccountId = source["adAccountId"];
+	        this.adAccountName = source["adAccountName"];
+	        this.adSetId = source["adSetId"];
+	        this.adSetName = source["adSetName"];
+	        this.geo = source["geo"];
+	        this.action = source["action"];
+	        this.reason = source["reason"];
+	        this.metricsJson = source["metricsJson"];
+	        this.createdAt = source["createdAt"];
+	    }
+	}
+	export class AutocontrolCycle {
+	    id: string;
+	    userId: string;
+	    status: string;
+	    actionsTaken: number;
+	    paused: number;
+	    resumed: number;
+	    skipped: number;
+	    errorMessage?: string;
+	    startedAt: any;
+	    completedAt?: any;
+	    items?: AutocontrolCycleItem[];
+
+	    static createFrom(source: any = {}) { return new AutocontrolCycle(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.status = source["status"];
+	        this.actionsTaken = source["actionsTaken"];
+	        this.paused = source["paused"];
+	        this.resumed = source["resumed"];
+	        this.skipped = source["skipped"];
+	        this.errorMessage = source["errorMessage"];
+	        this.startedAt = source["startedAt"];
+	        this.completedAt = source["completedAt"];
+	        this.items = source["items"];
+	    }
+	}
 
 }
 
@@ -968,6 +1100,103 @@ export namespace main {
 		    }
 		    return a;
 		}
+	}
+	export class GeoRuleInput {
+	    geo: string;
+	    enabled: boolean;
+	    maxCpa: number | null;
+	    maxSpendNoConv: number | null;
+	    maxUcpcNoConv: number | null;
+	    maxSpendHighUcpc: number | null;
+
+	    static createFrom(source: any = {}) { return new GeoRuleInput(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.geo = source["geo"];
+	        this.enabled = source["enabled"];
+	        this.maxCpa = source["maxCpa"];
+	        this.maxSpendNoConv = source["maxSpendNoConv"];
+	        this.maxUcpcNoConv = source["maxUcpcNoConv"];
+	        this.maxSpendHighUcpc = source["maxSpendHighUcpc"];
+	    }
+	}
+	export class PauseWindowInput {
+	    label: string;
+	    dayOfWeek: number;
+	    startHour: number;
+	    endHour: number;
+	    enabled: boolean;
+
+	    static createFrom(source: any = {}) { return new PauseWindowInput(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.label = source["label"];
+	        this.dayOfWeek = source["dayOfWeek"];
+	        this.startHour = source["startHour"];
+	        this.endHour = source["endHour"];
+	        this.enabled = source["enabled"];
+	    }
+	}
+	export class AutocontrolConfigResult {
+	    config: db.AutocontrolConfig;
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AutocontrolConfigResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.config = this.convertValues(source["config"], db.AutocontrolConfig);
+	        this.error = source["error"];
+	    }
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) { return a; }
+		    if (a.slice && a.map) { return (a as any[]).map(elem => this.convertValues(elem, classs)); }
+		    else if ("object" === typeof a) { if (asMap) { for (const key of Object.keys(a)) { a[key] = new classs(a[key]); } return a; } return new classs(a); }
+		    return a;
+		}
+	}
+	export class GeoRulesResult {
+	    rules: db.GeoRule[];
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new GeoRulesResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.rules = source["rules"];
+	        this.error = source["error"];
+	    }
+	}
+	export class PauseWindowsResult {
+	    windows: db.PauseWindow[];
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new PauseWindowsResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.windows = source["windows"];
+	        this.error = source["error"];
+	    }
+	}
+	export class AutocontrolCyclesResult {
+	    cycles: db.AutocontrolCycle[];
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AutocontrolCyclesResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cycles = source["cycles"];
+	        this.error = source["error"];
+	    }
+	}
+	export class AutocontrolCycleDetailResult {
+	    cycle: db.AutocontrolCycle;
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AutocontrolCycleDetailResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cycle = source["cycle"];
+	        this.error = source["error"];
+	    }
 	}
 
 }

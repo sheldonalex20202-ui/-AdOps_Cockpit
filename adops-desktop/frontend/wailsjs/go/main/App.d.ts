@@ -83,3 +83,27 @@ export function OpenReleasePage():Promise<void>;
 export function GetVersion():Promise<string>;
 
 export function StartUpdate(arg1:string):Promise<void>;
+
+export function CreateGeoRule(arg1:main.GeoRuleInput):Promise<db.GeoRule>;
+
+export function CreatePauseWindow(arg1:main.PauseWindowInput):Promise<db.PauseWindow>;
+
+export function DeleteGeoRule(arg1:string):Promise<void>;
+
+export function DeletePauseWindow(arg1:string):Promise<void>;
+
+export function ForceRunAutocontrol():Promise<main.AutocontrolCycleDetailResult>;
+
+export function GetAutocontrolConfig():Promise<main.AutocontrolConfigResult>;
+
+export function GetAutocontrolCycleDetail(arg1:string):Promise<main.AutocontrolCycleDetailResult>;
+
+export function GetAutocontrolCycles(arg1:number):Promise<main.AutocontrolCyclesResult>;
+
+export function GetGeoRules():Promise<main.GeoRulesResult>;
+
+export function GetPauseWindows():Promise<main.PauseWindowsResult>;
+
+export function SaveAutocontrolConfig(arg1:boolean,arg2:number):Promise<void>;
+
+export function UpdateGeoRule(arg1:string,arg2:main.GeoRuleInput):Promise<db.GeoRule>;

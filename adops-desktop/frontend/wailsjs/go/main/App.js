@@ -161,3 +161,51 @@ export function GetVersion() {
 export function StartUpdate(arg1) {
   return window['go']['main']['App']['StartUpdate'](arg1);
 }
+
+export function CreateGeoRule(arg1) {
+  return window['go']['main']['App']['CreateGeoRule'](arg1);
+}
+
+export function CreatePauseWindow(arg1) {
+  return window['go']['main']['App']['CreatePauseWindow'](arg1);
+}
+
+export function DeleteGeoRule(arg1) {
+  return window['go']['main']['App']['DeleteGeoRule'](arg1);
+}
+
+export function DeletePauseWindow(arg1) {
+  return window['go']['main']['App']['DeletePauseWindow'](arg1);
+}
+
+export function ForceRunAutocontrol() {
+  return window['go']['main']['App']['ForceRunAutocontrol']();
+}
+
+export function GetAutocontrolConfig() {
+  return window['go']['main']['App']['GetAutocontrolConfig']();
+}
+
+export function GetAutocontrolCycleDetail(arg1) {
+  return window['go']['main']['App']['GetAutocontrolCycleDetail'](arg1);
+}
+
+export function GetAutocontrolCycles(arg1) {
+  return window['go']['main']['App']['GetAutocontrolCycles'](arg1);
+}
+
+export function GetGeoRules() {
+  return window['go']['main']['App']['GetGeoRules']();
+}
+
+export function GetPauseWindows() {
+  return window['go']['main']['App']['GetPauseWindows']();
+}
+
+export function SaveAutocontrolConfig(arg1, arg2) {
+  return window['go']['main']['App']['SaveAutocontrolConfig'](arg1, arg2);
+}
+
+export function UpdateGeoRule(arg1, arg2) {
+  return window['go']['main']['App']['UpdateGeoRule'](arg1, arg2);
+}
