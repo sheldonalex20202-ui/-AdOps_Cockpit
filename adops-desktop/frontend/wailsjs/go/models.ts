@@ -660,6 +660,118 @@ export namespace db {
 	        this.items = source["items"];
 	    }
 	}
+	export class AutoscaleConfig {
+	    id: string;
+	    userId: string;
+	    enabled: boolean;
+	    intervalMinutes: number;
+	    lastRunAt?: any;
+	    createdAt: any;
+	    updatedAt: any;
+
+	    static createFrom(source: any = {}) { return new AutoscaleConfig(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.enabled = source["enabled"];
+	        this.intervalMinutes = source["intervalMinutes"];
+	        this.lastRunAt = source["lastRunAt"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class ScaleRule {
+	    id: string;
+	    userId: string;
+	    name: string;
+	    geo: string;
+	    enabled: boolean;
+	    minSpend: number;
+	    maxCpa: number;
+	    minConversions: number;
+	    cloneCount: number;
+	    budgetMultiplier: number;
+	    createdAt: any;
+	    updatedAt: any;
+
+	    static createFrom(source: any = {}) { return new ScaleRule(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.name = source["name"];
+	        this.geo = source["geo"];
+	        this.enabled = source["enabled"];
+	        this.minSpend = source["minSpend"];
+	        this.maxCpa = source["maxCpa"];
+	        this.minConversions = source["minConversions"];
+	        this.cloneCount = source["cloneCount"];
+	        this.budgetMultiplier = source["budgetMultiplier"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
+	export class AutoscaleCycleItem {
+	    id: string;
+	    cycleId: string;
+	    userId: string;
+	    adAccountId: string;
+	    adAccountName: string;
+	    campaignId: string;
+	    campaignName: string;
+	    geo: string;
+	    action: string;
+	    clonesCreated: number;
+	    reason: string;
+	    metricsJson: Record<string, any>;
+	    createdAt: any;
+
+	    static createFrom(source: any = {}) { return new AutoscaleCycleItem(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.cycleId = source["cycleId"];
+	        this.userId = source["userId"];
+	        this.adAccountId = source["adAccountId"];
+	        this.adAccountName = source["adAccountName"];
+	        this.campaignId = source["campaignId"];
+	        this.campaignName = source["campaignName"];
+	        this.geo = source["geo"];
+	        this.action = source["action"];
+	        this.clonesCreated = source["clonesCreated"];
+	        this.reason = source["reason"];
+	        this.metricsJson = source["metricsJson"];
+	        this.createdAt = source["createdAt"];
+	    }
+	}
+	export class AutoscaleCycle {
+	    id: string;
+	    userId: string;
+	    status: string;
+	    candidatesChecked: number;
+	    clonesCreated: number;
+	    skipped: number;
+	    errorMessage?: string;
+	    startedAt: any;
+	    completedAt?: any;
+	    items?: AutoscaleCycleItem[];
+
+	    static createFrom(source: any = {}) { return new AutoscaleCycle(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.userId = source["userId"];
+	        this.status = source["status"];
+	        this.candidatesChecked = source["candidatesChecked"];
+	        this.clonesCreated = source["clonesCreated"];
+	        this.skipped = source["skipped"];
+	        this.errorMessage = source["errorMessage"];
+	        this.startedAt = source["startedAt"];
+	        this.completedAt = source["completedAt"];
+	        this.items = source["items"];
+	    }
+	}
 
 }
 
@@ -1192,6 +1304,73 @@ export namespace main {
 	    error?: string;
 
 	    static createFrom(source: any = {}) { return new AutocontrolCycleDetailResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cycle = source["cycle"];
+	        this.error = source["error"];
+	    }
+	}
+	export class ScaleRuleInput {
+	    name: string;
+	    geo: string;
+	    enabled: boolean;
+	    minSpend: number;
+	    maxCpa: number;
+	    minConversions: number;
+	    cloneCount: number;
+	    budgetMultiplier: number;
+
+	    static createFrom(source: any = {}) { return new ScaleRuleInput(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.geo = source["geo"];
+	        this.enabled = source["enabled"];
+	        this.minSpend = source["minSpend"];
+	        this.maxCpa = source["maxCpa"];
+	        this.minConversions = source["minConversions"];
+	        this.cloneCount = source["cloneCount"];
+	        this.budgetMultiplier = source["budgetMultiplier"];
+	    }
+	}
+	export class AutoscaleConfigResult {
+	    config: db.AutoscaleConfig;
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AutoscaleConfigResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.config = source["config"];
+	        this.error = source["error"];
+	    }
+	}
+	export class ScaleRulesResult {
+	    rules: db.ScaleRule[];
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new ScaleRulesResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.rules = source["rules"];
+	        this.error = source["error"];
+	    }
+	}
+	export class AutoscaleCyclesResult {
+	    cycles: db.AutoscaleCycle[];
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AutoscaleCyclesResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cycles = source["cycles"];
+	        this.error = source["error"];
+	    }
+	}
+	export class AutoscaleCycleDetailResult {
+	    cycle: db.AutoscaleCycle;
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AutoscaleCycleDetailResult(source); }
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.cycle = source["cycle"];

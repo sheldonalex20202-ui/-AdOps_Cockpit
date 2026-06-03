@@ -16,6 +16,7 @@ import { AuditClient }         from "./pages/audit-logs/AuditClient";
 import { IntegrationsClient }  from "./pages/integrations/IntegrationsClient";
 import { LaunchHistoryClient } from "./pages/launch-history/LaunchHistoryClient";
 import { AutocontrolClient }   from "./pages/autocontrol/AutocontrolClient";
+import { AutoscaleClient }     from "./pages/autoscale/AutoscaleClient";
 
 type User = { id: string; name: string; email: string };
 type AppState = "loading" | "login" | "app";
@@ -102,6 +103,7 @@ function PageContent({ page }: { page: string }) {
   switch (page) {
     case "launch":          return <LaunchClient />;
     case "autocontrol":     return <AutocontrolClient />;
+    case "autoscale":       return <AutoscaleClient />;
     case "accounts":        return <AccountsClient />;
     case "account-pools":   return <AccountPoolsClient />;
     case "health-checks":   return <HealthClient />;

@@ -209,3 +209,39 @@ export function SaveAutocontrolConfig(arg1, arg2) {
 export function UpdateGeoRule(arg1, arg2) {
   return window['go']['main']['App']['UpdateGeoRule'](arg1, arg2);
 }
+
+export function CreateScaleRule(arg1) {
+  return window['go']['main']['App']['CreateScaleRule'](arg1);
+}
+
+export function DeleteScaleRule(arg1) {
+  return window['go']['main']['App']['DeleteScaleRule'](arg1);
+}
+
+export function ForceRunAutoscale() {
+  return window['go']['main']['App']['ForceRunAutoscale']();
+}
+
+export function GetAutoscaleConfig() {
+  return window['go']['main']['App']['GetAutoscaleConfig']();
+}
+
+export function GetAutoscaleCycleDetail(arg1) {
+  return window['go']['main']['App']['GetAutoscaleCycleDetail'](arg1);
+}
+
+export function GetAutoscaleCycles(arg1) {
+  return window['go']['main']['App']['GetAutoscaleCycles'](arg1);
+}
+
+export function GetScaleRules() {
+  return window['go']['main']['App']['GetScaleRules']();
+}
+
+export function SaveAutoscaleConfig(arg1, arg2) {
+  return window['go']['main']['App']['SaveAutoscaleConfig'](arg1, arg2);
+}
+
+export function UpdateScaleRule(arg1, arg2) {
+  return window['go']['main']['App']['UpdateScaleRule'](arg1, arg2);
+}

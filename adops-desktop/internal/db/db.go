@@ -55,6 +55,10 @@ func migrate(db *gorm.DB) error {
 		&PauseWindow{},
 		&AutocontrolCycle{},
 		&AutocontrolCycleItem{},
+		&AutoscaleConfig{},
+		&ScaleRule{},
+		&AutoscaleCycle{},
+		&AutoscaleCycleItem{},
 	)
 }
 

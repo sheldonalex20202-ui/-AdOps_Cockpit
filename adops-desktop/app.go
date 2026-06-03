@@ -11,6 +11,7 @@ import (
 
 	"adops-desktop/internal/audit"
 	"adops-desktop/internal/autocontrol"
+	"adops-desktop/internal/autoscale"
 	"adops-desktop/internal/authflow"
 	"adops-desktop/internal/db"
 	"adops-desktop/internal/health"
@@ -1073,6 +1074,235 @@ func (a *App) ForceRunAutocontrol() AutocontrolCycleDetailResult {
 
 	cycle.Items = items
 	return AutocontrolCycleDetailResult{Cycle: cycle}
+}
+
+// ─── Autoscale ────────────────────────────────────────────────────────────────
+
+type AutoscaleConfigResult struct {
+	Config db.AutoscaleConfig `json:"config"`
+	Error  string             `json:"error,omitempty"`
+}
+
+func (a *App) GetAutoscaleConfig() AutoscaleConfigResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutoscaleConfigResult{Error: "not_authenticated"}
+	}
+	var cfg db.AutoscaleConfig
+	res := a.gdb.Where("user_id = ?", a.currentUserID).First(&cfg)
+	if res.Error != nil {
+		cfg = db.AutoscaleConfig{
+			ID:              uuid.NewString(),
+			UserID:          a.currentUserID,
+			Enabled:         false,
+			IntervalMinutes: 30,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+	}
+	return AutoscaleConfigResult{Config: cfg}
+}
+
+func (a *App) SaveAutoscaleConfig(enabled bool, intervalMinutes int) error {
+	if a.currentUserID == "" {
+		return fmt.Errorf("not_authenticated")
+	}
+	var cfg db.AutoscaleConfig
+	res := a.gdb.Where("user_id = ?", a.currentUserID).First(&cfg)
+	if res.Error != nil {
+		cfg = db.AutoscaleConfig{
+			ID:        uuid.NewString(),
+			UserID:    a.currentUserID,
+			CreatedAt: time.Now(),
+		}
+	}
+	cfg.Enabled = enabled
+	cfg.IntervalMinutes = intervalMinutes
+	cfg.UpdatedAt = time.Now()
+	return a.gdb.Save(&cfg).Error
+}
+
+type ScaleRulesResult struct {
+	Rules []db.ScaleRule `json:"rules"`
+	Error string         `json:"error,omitempty"`
+}
+
+func (a *App) GetScaleRules() ScaleRulesResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return ScaleRulesResult{Error: "not_authenticated"}
+	}
+	var rules []db.ScaleRule
+	a.gdb.Where("user_id = ?", a.currentUserID).Order("created_at asc").Find(&rules)
+	return ScaleRulesResult{Rules: rules}
+}
+
+type ScaleRuleInput struct {
+	Name             string  `json:"name"`
+	Geo              string  `json:"geo"`
+	Enabled          bool    `json:"enabled"`
+	MinSpend         float64 `json:"minSpend"`
+	MaxCPA           float64 `json:"maxCpa"`
+	MinConversions   int     `json:"minConversions"`
+	CloneCount       int     `json:"cloneCount"`
+	BudgetMultiplier float64 `json:"budgetMultiplier"`
+}
+
+func (a *App) CreateScaleRule(input ScaleRuleInput) (db.ScaleRule, error) {
+	if a.currentUserID == "" {
+		return db.ScaleRule{}, fmt.Errorf("not_authenticated")
+	}
+	rule := db.ScaleRule{
+		ID:               uuid.NewString(),
+		UserID:           a.currentUserID,
+		Name:             strings.TrimSpace(input.Name),
+		Geo:              strings.ToUpper(strings.TrimSpace(input.Geo)),
+		Enabled:          input.Enabled,
+		MinSpend:         input.MinSpend,
+		MaxCPA:           input.MaxCPA,
+		MinConversions:   input.MinConversions,
+		CloneCount:       input.CloneCount,
+		BudgetMultiplier: input.BudgetMultiplier,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	return rule, a.gdb.Create(&rule).Error
+}
+
+func (a *App) UpdateScaleRule(id string, input ScaleRuleInput) (db.ScaleRule, error) {
+	if a.currentUserID == "" {
+		return db.ScaleRule{}, fmt.Errorf("not_authenticated")
+	}
+	var rule db.ScaleRule
+	if err := a.gdb.Where("id = ? AND user_id = ?", id, a.currentUserID).First(&rule).Error; err != nil {
+		return db.ScaleRule{}, err
+	}
+	rule.Name = strings.TrimSpace(input.Name)
+	rule.Geo = strings.ToUpper(strings.TrimSpace(input.Geo))
+	rule.Enabled = input.Enabled
+	rule.MinSpend = input.MinSpend
+	rule.MaxCPA = input.MaxCPA
+	rule.MinConversions = input.MinConversions
+	rule.CloneCount = input.CloneCount
+	rule.BudgetMultiplier = input.BudgetMultiplier
+	rule.UpdatedAt = time.Now()
+	return rule, a.gdb.Save(&rule).Error
+}
+
+func (a *App) DeleteScaleRule(id string) error {
+	if a.currentUserID == "" {
+		return fmt.Errorf("not_authenticated")
+	}
+	return a.gdb.Where("id = ? AND user_id = ?", id, a.currentUserID).Delete(&db.ScaleRule{}).Error
+}
+
+type AutoscaleCyclesResult struct {
+	Cycles []db.AutoscaleCycle `json:"cycles"`
+	Error  string              `json:"error,omitempty"`
+}
+
+func (a *App) GetAutoscaleCycles(limit int) AutoscaleCyclesResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutoscaleCyclesResult{Error: "not_authenticated"}
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	var cycles []db.AutoscaleCycle
+	a.gdb.Where("user_id = ?", a.currentUserID).Order("started_at desc").Limit(limit).Find(&cycles)
+	return AutoscaleCyclesResult{Cycles: cycles}
+}
+
+type AutoscaleCycleDetailResult struct {
+	Cycle db.AutoscaleCycle `json:"cycle"`
+	Error string            `json:"error,omitempty"`
+}
+
+func (a *App) GetAutoscaleCycleDetail(cycleID string) AutoscaleCycleDetailResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutoscaleCycleDetailResult{Error: "not_authenticated"}
+	}
+	var cycle db.AutoscaleCycle
+	if err := a.gdb.Where("id = ? AND user_id = ?", cycleID, a.currentUserID).
+		Preload("Items").First(&cycle).Error; err != nil {
+		return AutoscaleCycleDetailResult{Error: err.Error()}
+	}
+	return AutoscaleCycleDetailResult{Cycle: cycle}
+}
+
+func (a *App) ForceRunAutoscale() AutoscaleCycleDetailResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return AutoscaleCycleDetailResult{Error: "not_authenticated"}
+	}
+
+	var accounts []db.MetaAdAccount
+	a.gdb.Where("user_id = ? AND archived = false", a.currentUserID).Find(&accounts)
+
+	var rules []db.ScaleRule
+	a.gdb.Where("user_id = ?", a.currentUserID).Find(&rules)
+
+	cycle := db.AutoscaleCycle{
+		ID:        uuid.NewString(),
+		UserID:    a.currentUserID,
+		Status:    "RUNNING",
+		StartedAt: time.Now(),
+	}
+	a.gdb.Create(&cycle)
+
+	actions := autoscale.Run(accounts, rules)
+
+	now := time.Now()
+	var cloned, skipped int
+	var items []db.AutoscaleCycleItem
+
+	for _, act := range actions {
+		metricsJSON := db.JSON{}
+		for k, v := range act.Metrics {
+			metricsJSON[k] = v
+		}
+		item := db.AutoscaleCycleItem{
+			ID:            uuid.NewString(),
+			CycleID:       cycle.ID,
+			UserID:        a.currentUserID,
+			AdAccountID:   act.AdAccountID,
+			AdAccountName: act.AdAccountName,
+			CampaignID:    act.CampaignID,
+			CampaignName:  act.CampaignName,
+			Geo:           act.Geo,
+			Action:        act.Action,
+			ClonesCreated: act.ClonesCreated,
+			Reason:        act.Reason,
+			MetricsJSON:   metricsJSON,
+			CreatedAt:     now,
+		}
+		items = append(items, item)
+		switch act.Action {
+		case "CLONED":
+			cloned += act.ClonesCreated
+		case "SKIPPED", "NO_RULE":
+			skipped++
+		}
+	}
+
+	if len(items) > 0 {
+		a.gdb.Create(&items)
+	}
+
+	cycle.Status = "COMPLETED"
+	cycle.CandidatesChecked = len(actions)
+	cycle.ClonesCreated = cloned
+	cycle.Skipped = skipped
+	cycle.CompletedAt = &now
+	a.gdb.Save(&cycle)
+
+	a.gdb.Model(&db.AutoscaleConfig{}).Where("user_id = ?", a.currentUserID).
+		Update("last_run_at", now)
+
+	cycle.Items = items
+	return AutoscaleCycleDetailResult{Cycle: cycle}
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

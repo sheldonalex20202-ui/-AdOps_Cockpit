@@ -343,3 +343,63 @@ type AutocontrolCycleItem struct {
 	MetricsJSON   JSON      `gorm:"type:text" json:"metricsJson"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
+
+// ─── Autoscale ────────────────────────────────────────────────────────────────
+
+// AutoscaleConfig — singleton per user
+type AutoscaleConfig struct {
+	ID              string     `gorm:"primaryKey;type:text" json:"id"`
+	UserID          string     `gorm:"uniqueIndex;type:text" json:"userId"`
+	Enabled         bool       `gorm:"default:false" json:"enabled"`
+	IntervalMinutes int        `gorm:"default:30" json:"intervalMinutes"`
+	LastRunAt       *time.Time `json:"lastRunAt"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+// ScaleRule — one rule per GEO (or any GEO) with winner thresholds
+type ScaleRule struct {
+	ID               string    `gorm:"primaryKey;type:text" json:"id"`
+	UserID           string    `gorm:"index;type:text" json:"userId"`
+	Name             string    `gorm:"type:text" json:"name"`
+	Geo              string    `gorm:"type:text;default:''" json:"geo"` // empty = any geo
+	Enabled          bool      `gorm:"default:true" json:"enabled"`
+	MinSpend         float64   `gorm:"default:30" json:"minSpend"`
+	MaxCPA           float64   `gorm:"default:15" json:"maxCpa"`
+	MinConversions   int       `gorm:"default:3" json:"minConversions"`
+	CloneCount       int       `gorm:"default:2" json:"cloneCount"`
+	BudgetMultiplier float64   `gorm:"default:1.0" json:"budgetMultiplier"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+// AutoscaleCycle — one scheduled run
+type AutoscaleCycle struct {
+	ID                string               `gorm:"primaryKey;type:text" json:"id"`
+	UserID            string               `gorm:"index;type:text" json:"userId"`
+	Status            string               `gorm:"type:text;default:'RUNNING'" json:"status"` // RUNNING, COMPLETED, FAILED
+	CandidatesChecked int                  `gorm:"default:0" json:"candidatesChecked"`
+	ClonesCreated     int                  `gorm:"default:0" json:"clonesCreated"`
+	Skipped           int                  `gorm:"default:0" json:"skipped"`
+	ErrorMessage      *string              `gorm:"type:text" json:"errorMessage"`
+	StartedAt         time.Time            `json:"startedAt"`
+	CompletedAt       *time.Time           `json:"completedAt"`
+	Items             []AutoscaleCycleItem `gorm:"foreignKey:CycleID" json:"items,omitempty"`
+}
+
+// AutoscaleCycleItem — per-campaign action within an autoscale cycle
+type AutoscaleCycleItem struct {
+	ID            string    `gorm:"primaryKey;type:text" json:"id"`
+	CycleID       string    `gorm:"index;type:text" json:"cycleId"`
+	UserID        string    `gorm:"index;type:text" json:"userId"`
+	AdAccountID   string    `gorm:"index;type:text" json:"adAccountId"`
+	AdAccountName string    `gorm:"type:text" json:"adAccountName"`
+	CampaignID    string    `gorm:"type:text" json:"campaignId"`
+	CampaignName  string    `gorm:"type:text" json:"campaignName"`
+	Geo           string    `gorm:"type:text" json:"geo"`
+	Action        string    `gorm:"type:text" json:"action"` // CLONED, SKIPPED, NO_RULE
+	ClonesCreated int       `gorm:"default:0" json:"clonesCreated"`
+	Reason        string    `gorm:"type:text" json:"reason"`
+	MetricsJSON   JSON      `gorm:"type:text" json:"metricsJson"`
+	CreatedAt     time.Time `json:"createdAt"`
+}

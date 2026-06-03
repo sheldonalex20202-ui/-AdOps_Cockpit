@@ -27,7 +27,7 @@ const navGroups: NavGroup[] = [
     items: [
       { page: "launch",       label: "Автозалив",    Icon: Rocket },
       { page: "autocontrol",  label: "Автоконтроль", Icon: Shield },
-      { page: "autoscale",    label: "Автоскейл",    Icon: TrendingUp, disabled: true, badge: "soon" },
+      { page: "autoscale",    label: "Автоскейл",    Icon: TrendingUp },
     ],
   },
   {

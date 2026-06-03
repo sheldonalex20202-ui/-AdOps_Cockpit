@@ -107,3 +107,21 @@ export function GetPauseWindows():Promise<main.PauseWindowsResult>;
 export function SaveAutocontrolConfig(arg1:boolean,arg2:number):Promise<void>;
 
 export function UpdateGeoRule(arg1:string,arg2:main.GeoRuleInput):Promise<db.GeoRule>;
+
+export function CreateScaleRule(arg1:main.ScaleRuleInput):Promise<db.ScaleRule>;
+
+export function DeleteScaleRule(arg1:string):Promise<void>;
+
+export function ForceRunAutoscale():Promise<main.AutoscaleCycleDetailResult>;
+
+export function GetAutoscaleConfig():Promise<main.AutoscaleConfigResult>;
+
+export function GetAutoscaleCycleDetail(arg1:string):Promise<main.AutoscaleCycleDetailResult>;
+
+export function GetAutoscaleCycles(arg1:number):Promise<main.AutoscaleCyclesResult>;
+
+export function GetScaleRules():Promise<main.ScaleRulesResult>;
+
+export function SaveAutoscaleConfig(arg1:boolean,arg2:number):Promise<void>;
+
+export function UpdateScaleRule(arg1:string,arg2:main.ScaleRuleInput):Promise<db.ScaleRule>;

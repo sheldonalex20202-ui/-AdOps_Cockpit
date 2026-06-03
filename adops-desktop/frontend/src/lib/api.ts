@@ -174,3 +174,27 @@ export interface PauseWindowInput {
   endHour: number;
   enabled: boolean;
 }
+
+// ─── Autoscale ────────────────────────────────────────────────────────────────
+
+export const getAutoscaleConfig = () => Go.GetAutoscaleConfig();
+export const saveAutoscaleConfig = (enabled: boolean, intervalMinutes: number) =>
+  Go.SaveAutoscaleConfig(enabled, intervalMinutes);
+export const getScaleRules = () => Go.GetScaleRules();
+export const createScaleRule = (input: ScaleRuleInput) => Go.CreateScaleRule(input);
+export const updateScaleRule = (id: string, input: ScaleRuleInput) => Go.UpdateScaleRule(id, input);
+export const deleteScaleRule = (id: string) => Go.DeleteScaleRule(id);
+export const forceRunAutoscale = () => Go.ForceRunAutoscale();
+export const getAutoscaleCycles = (limit?: number) => Go.GetAutoscaleCycles(limit ?? 20);
+export const getAutoscaleCycleDetail = (cycleId: string) => Go.GetAutoscaleCycleDetail(cycleId);
+
+export interface ScaleRuleInput {
+  name: string;
+  geo: string;
+  enabled: boolean;
+  minSpend: number;
+  maxCpa: number;
+  minConversions: number;
+  cloneCount: number;
+  budgetMultiplier: number;
+}
