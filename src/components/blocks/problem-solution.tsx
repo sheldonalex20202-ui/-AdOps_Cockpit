@@ -1,83 +1,47 @@
-const rows = [
-  {
-    pain:     "6 часов на ручной залив одного кабинета",
-    gain:     "15 минут — залив на 50+ кабинетов одновременно",
-  },
-  {
-    pain:     "Кабинеты падают, а ты узнаёшь из слитого бюджета",
-    gain:     "Health Check 0–100 перед каждым запуском автоматически",
-  },
-  {
-    pain:     "Аккаунты и статусы — в Excel, Notion и голове",
-    gain:     "Всё в одном десктопе: пулы, статусы, залив, история",
-  },
-  {
-    pain:     "С ростом кабинетов скорость падает до нуля",
-    gain:     "Масштаб без боли — структуры CBO/ABO/Z_GROUP одним кликом",
-  },
-  {
-    pain:     "Ошибки в неймингах кампаний, ручная настройка каждого",
-    gain:     "Авто-нейминг с переменными — {geo}, {vertical}, {date}, {angle}",
-  },
-];
+import TextMarque from "@/components/ui/text-marque";
+
+const PAINS =
+  "6 часов на залив одного кабинета  ·  кабинеты падают — узнаёшь из слитого бюджета  ·  статусы в Excel и Notion и голове  ·  скорость падает при росте кабинетов  ·  ошибки в неймингах каждой кампании";
+
+const GAINS =
+  "15 мин на 50+ кабинетов  →  Health Check 0–100 перед каждым запуском  →  всё в одном десктопе  →  масштаб без боли  →  авто-нейминг  {geo} · {vertical} · {date} · {angle}";
 
 export function ProblemSolution() {
   return (
-    <section className="mx-auto max-w-5xl px-4 py-20">
-      {/* Header */}
-      <div className="mb-12 text-center">
+    <section className="py-24 overflow-hidden border-t border-zinc-800/40">
+      <div className="mb-14 text-center px-4">
         <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-500">
-          Проблема → Решение
+          До и после
         </div>
         <h2 className="text-3xl font-black text-zinc-100 sm:text-4xl">
-          Что меняется с AdOps Cockpit
+          Что меняется с{" "}
+          <span className="gradient-text">AdOps Cockpit</span>
         </h2>
       </div>
 
-      {/* Column headers */}
-      <div className="mb-4 grid grid-cols-[1fr_40px_1fr] items-center gap-3">
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-red-500" />
-          <span className="text-sm font-bold text-red-400 uppercase tracking-wider">Без инструмента</span>
-        </div>
-        <div />
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider">С AdOps Cockpit</span>
-        </div>
+      {/* Pains — scroll left */}
+      <div className="mb-5 relative">
+        <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <TextMarque
+          baseVelocity={-2.5}
+          className="text-[15px] font-medium text-zinc-600 line-through decoration-red-500/50 decoration-[1.5px]"
+        >
+          {PAINS}
+        </TextMarque>
       </div>
 
-      {/* Rows */}
-      <div className="space-y-2">
-        {rows.map((row, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-[1fr_40px_1fr] items-center gap-3"
-          >
-            {/* Pain */}
-            <div className="flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3 transition-colors hover:border-red-500/20 hover:bg-red-500/5">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-[11px] text-red-400">
-                ✕
-              </span>
-              <p className="text-sm text-zinc-400 leading-snug">{row.pain}</p>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex items-center justify-center">
-              <svg className="h-5 w-5 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
-              </svg>
-            </div>
-
-            {/* Gain */}
-            <div className="flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3 transition-colors hover:border-emerald-500/20 hover:bg-emerald-500/5">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[11px] text-emerald-400">
-                ✓
-              </span>
-              <p className="text-sm text-zinc-200 leading-snug font-medium">{row.gain}</p>
-            </div>
-          </div>
-        ))}
+      {/* Gains — scroll right */}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <TextMarque
+          baseVelocity={2.5}
+          delay={150}
+          className="text-[15px] font-semibold text-zinc-200"
+        >
+          {GAINS}
+        </TextMarque>
       </div>
     </section>
   );

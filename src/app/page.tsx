@@ -1,50 +1,11 @@
 import Link from "next/link";
-import { Monitor, Apple, ArrowRight, Zap, Shield, Layers, BarChart3, TrendingUp, Target, FileText } from "lucide-react";
+import { Monitor, Apple, ArrowRight, TrendingUp } from "lucide-react";
 import { HeroBackground } from "@/components/HeroBackground";
 import { HeroSection9 } from "@/components/blocks/hero-section-9";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import { AppMockupInteractive } from "@/components/AppMockupInteractive";
 import { ProblemSolution } from "@/components/blocks/problem-solution";
-import { BentoGrid, type BentoItem } from "@/components/ui/bento-grid";
-
-const bentoItems: BentoItem[] = [
-  {
-    title: "Массовый автозалив",
-    description: "Запускай кампании на 50+ кабинетах за 15 минут. CBO, ABO, Isolation, Z-Group — любая структура одним кликом.",
-    icon: <Zap className="w-4 h-4 text-blue-400" />,
-    status: "Core",
-    tags: ["CBO", "ABO", "Z-Group"],
-    colSpan: 2,
-    hasPersistentHover: true,
-  },
-  {
-    title: "Health Check",
-    description: "Score 0–100 перед каждым запуском. Токен, биллинг, лимиты — автоматически.",
-    icon: <Shield className="w-4 h-4 text-violet-400" />,
-    status: "Auto",
-    tags: ["Readiness"],
-  },
-  {
-    title: "Пулы кабинетов",
-    description: "Группируй по проектам, гео, командам. Залив по пулу за секунды.",
-    icon: <Layers className="w-4 h-4 text-indigo-400" />,
-    tags: ["Гео", "Команды"],
-  },
-  {
-    title: "Вертикальные пресеты",
-    description: "NUTRA / GAMBLING / CRYPTO / DATING / ECOM — пресеты с objective, bid strategy и бюджетом.",
-    icon: <Target className="w-4 h-4 text-pink-400" />,
-    tags: ["NUTRA", "GAMBLING", "CRYPTO"],
-  },
-  {
-    title: "История и аналитика",
-    description: "Все запуски с дрилдауном по каждому кабинету, процент успеха, быстрый re-launch одной кнопкой.",
-    icon: <BarChart3 className="w-4 h-4 text-emerald-400" />,
-    status: "New",
-    tags: ["История", "Re-launch"],
-    colSpan: 2,
-  },
-];
+import { Feature108 } from "@/components/blocks/feature108";
 
 const steps = [
   { num: "01", title: "Скачай приложение",   desc: "Установи AdOps Cockpit на Windows или macOS. Занимает меньше минуты." },
@@ -87,17 +48,8 @@ export default function HomePage() {
       {/* ── Problem → Solution comparison ──────────────── */}
       <ProblemSolution />
 
-      {/* ── Bento features grid ────────────────────────── */}
-      <section className="border-t border-zinc-800/40 bg-gradient-to-b from-zinc-900/30 to-transparent py-20 px-4">
-        <div className="mb-12 text-center">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-400/80">Возможности</div>
-          <h2 className="text-3xl font-black text-zinc-100 sm:text-4xl">
-            Всё, что нужно баеру —{" "}
-            <span className="gradient-text">в одном инструменте</span>
-          </h2>
-        </div>
-        <BentoGrid items={bentoItems} />
-      </section>
+      {/* ── Tabbed features ────────────────────────────── */}
+      <Feature108 />
 
       {/* ── Interactive app preview ────────────────────── */}
       <section className="bg-zinc-950">
