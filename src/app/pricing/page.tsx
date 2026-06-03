@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeReturnTo, planLabels } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
-import { PricingCard, PricingLayout } from "@/components/ui/animated-glassy-pricing";
+import { PricingCard, ModernPricingPage } from "@/components/ui/animated-glassy-pricing";
 
 const plans = [
   {
@@ -122,7 +122,7 @@ export default async function PricingPage({ searchParams }: Props) {
   );
 
   return (
-    <PricingLayout
+    <ModernPricingPage
       title={<>Тарифы AdOps Cockpit</>}
       subtitle="Подписка привязана к аккаунту и применяется в desktop-приложении после входа"
       userBlock={userBlock}
