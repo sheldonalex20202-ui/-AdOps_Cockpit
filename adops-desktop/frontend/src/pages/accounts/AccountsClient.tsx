@@ -24,6 +24,8 @@ export function AccountsClient() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [targetPoolId, setTargetPoolId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [importing, setImporting] = useState(false);
   const [filters, setFilters] = useState({ search: "", status: "", readiness: "", poolId: "" });
   const [form, setForm] = useState({ externalId: "", name: "", currency: "USD", timezone: "Europe/Moscow" });
   const [adding, setAdding] = useState(false);
@@ -44,12 +46,18 @@ export function AccountsClient() {
 
   async function load() {
     setLoading(true);
-    const [ar, pr] = await Promise.all([
-      api.getAccounts(filters.poolId, filters.status, filters.search, false),
-      api.getPools(),
-    ]);
-    setAccounts(ar.accounts ?? []);
-    setPools(pr.pools ?? []);
+    setError("");
+    try {
+      const [ar, pr] = await Promise.all([
+        api.getAccounts(filters.poolId, filters.status, filters.search, false),
+        api.getPools(),
+      ]);
+      if (ar.error) { setError(ar.error); setLoading(false); return; }
+      setAccounts(ar.accounts ?? []);
+      setPools(pr.pools ?? []);
+    } catch (e: any) {
+      setError(String(e?.message ?? e ?? "Ошибка загрузки"));
+    }
     setLoading(false);
   }
 
@@ -94,8 +102,17 @@ export function AccountsClient() {
         actions={
           <>
             <Button variant="ghost" size="sm" onClick={load}><RefreshCw size={13} /> Обновить</Button>
-            <Button variant="ghost" size="sm" onClick={() => api.mockImportAccounts(30).then(load)}>
-              <Upload size={13} /> Mock import
+            <Button
+              variant="ghost" size="sm"
+              disabled={importing}
+              onClick={async () => {
+                setImporting(true);
+                try { await api.mockImportAccounts(30); } catch {}
+                setImporting(false);
+                await load();
+              }}
+            >
+              <Upload size={13} /> {importing ? "Импорт..." : "Mock import"}
             </Button>
             <Button size="sm" onClick={() => setAdding((v) => !v)}>
               <Plus size={13} /> Добавить
@@ -160,6 +177,13 @@ export function AccountsClient() {
           </div>
         )}
       </FilterBar>
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-[13px] text-danger">
+          {error}
+        </div>
+      )}
 
       {/* Table */}
       {loading ? (

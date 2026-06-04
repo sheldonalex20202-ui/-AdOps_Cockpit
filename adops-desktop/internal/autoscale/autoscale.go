@@ -22,6 +22,18 @@ type ScaleAction struct {
 	Metrics       map[string]interface{}
 }
 
+// defaultRule is used as a fallback when no rules are configured, so
+// ForceRunAutoscale always produces meaningful mock results for testing.
+var defaultRule = &db.ScaleRule{
+	Geo:              "",
+	Enabled:          true,
+	MinSpend:         50,
+	MaxCPA:           25,
+	MinConversions:   2,
+	CloneCount:       2,
+	BudgetMultiplier: 1.0,
+}
+
 // Run executes a mock autoscale cycle over the given accounts and scale rules.
 // It generates 2–4 mock campaigns per account, computes CPA/spend/conversion
 // metrics, and applies the matching ScaleRule thresholds to decide whether to
@@ -41,6 +53,10 @@ func Run(accounts []db.MetaAdAccount, rules []db.ScaleRule) []ScaleAction {
 			r := rules[i]
 			geoRuleMap[rules[i].Geo] = &r
 		}
+	}
+	// Fall back to default rule when none configured — keeps test data useful.
+	if wildcardRule == nil && len(geoRuleMap) == 0 {
+		wildcardRule = defaultRule
 	}
 
 	// Collect GEOs from rules for mock data generation

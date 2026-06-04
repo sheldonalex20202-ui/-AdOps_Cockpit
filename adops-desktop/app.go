@@ -241,6 +241,7 @@ func (a *App) MockImportAccounts(count int) (int, error) {
 	statuses := []db.AccountStatus{db.AccountActive, db.AccountActive, db.AccountActive, db.AccountLimited, db.AccountDisabled}
 	tokens := []db.TokenStatus{db.TokenMock, db.TokenMock, db.TokenValid, db.TokenExpired}
 	billings := []db.BillingStatus{db.BillingOK, db.BillingOK, db.BillingIssue, db.BillingUnknown}
+	readiness := []db.ReadinessStatus{db.ReadinessReady, db.ReadinessReady, db.ReadinessNeedsAttention, db.ReadinessBlocked}
 	geos := []string{"USA", "GBR", "DEU", "FRA", "ESP", "ITA", "POL", "UKR"}
 
 	now := time.Now()
@@ -248,18 +249,25 @@ func (a *App) MockImportAccounts(count int) (int, error) {
 	for i := 0; i < count; i++ {
 		geo := geos[rand.Intn(len(geos))]
 		extID := fmt.Sprintf("act_%d", rand.Intn(9000000000)+1000000000)
+		rs := readiness[rand.Intn(len(readiness))]
+		score := 40 + rand.Intn(60) // 40–99
+		if rs == db.ReadinessBlocked {
+			score = rand.Intn(40) // 0–39
+		}
 		acc := db.MetaAdAccount{
-			ID:            uuid.NewString(),
-			UserID:        a.currentUserID,
-			ExternalID:    extID,
-			Name:          fmt.Sprintf("Кабинет %s #%d", geo, i+1),
-			Currency:      "USD",
-			Timezone:      "UTC",
-			Status:        statuses[rand.Intn(len(statuses))],
-			TokenStatus:   tokens[rand.Intn(len(tokens))],
-			BillingStatus: billings[rand.Intn(len(billings))],
-			CreatedAt:     now,
-			UpdatedAt:     now,
+			ID:              uuid.NewString(),
+			UserID:          a.currentUserID,
+			ExternalID:      extID,
+			Name:            fmt.Sprintf("Кабинет %s #%d", geo, i+1),
+			Currency:        "USD",
+			Timezone:        "UTC",
+			Status:          statuses[rand.Intn(len(statuses))],
+			TokenStatus:     tokens[rand.Intn(len(tokens))],
+			BillingStatus:   billings[rand.Intn(len(billings))],
+			ReadinessStatus: rs,
+			ReadinessScore:  score,
+			CreatedAt:       now,
+			UpdatedAt:       now,
 		}
 		if rand.Float32() > 0.3 {
 			limit := float64(rand.Intn(5)*50 + 50)

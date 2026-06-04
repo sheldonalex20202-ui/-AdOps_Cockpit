@@ -32,9 +32,24 @@ func Run(accounts []db.MetaAdAccount, rules []db.GeoRule) []CycleAction {
 		}
 	}
 
+	// When no rules configured, use default thresholds so test runs show
+	// PAUSED/SKIPPED/RESUMED results instead of all NO_RULE.
+	noRulesConfigured := len(ruleMap) == 0
+	if noRulesConfigured {
+		defaultMaxCPA := float64(20)
+		defaultMaxSpend := float64(80)
+		ruleMap["*"] = &db.GeoRule{
+			Enabled:        true,
+			MaxCPA:         &defaultMaxCPA,
+			MaxSpendNoConv: &defaultMaxSpend,
+		}
+	}
+
 	geos := make([]string, 0, len(ruleMap))
 	for g := range ruleMap {
-		geos = append(geos, g)
+		if g != "*" {
+			geos = append(geos, g)
+		}
 	}
 	if len(geos) == 0 {
 		geos = []string{"DE", "US", "FR", "RU", "BR"}
@@ -72,6 +87,9 @@ func Run(accounts []db.MetaAdAccount, rules []db.GeoRule) []CycleAction {
 			}
 
 			rule, hasRule := ruleMap[geo]
+			if !hasRule {
+				rule, hasRule = ruleMap["*"]
+			}
 
 			action := CycleAction{
 				AdSetID:       adSetID,
