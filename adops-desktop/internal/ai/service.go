@@ -12,6 +12,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// builtInGroqKey is populated by secrets.go (gitignored).
+var builtInGroqKey = ""
+
 // Service orchestrates command parsing and execution.
 type Service struct {
 	gdb     *gorm.DB
@@ -32,7 +35,11 @@ func New(gdb *gorm.DB) *Service {
 func (s *Service) GetConfig(userID string) AIConfig {
 	var cfg db.AIConfig
 	s.gdb.Where("user_id = ?", userID).First(&cfg)
-	return AIConfig{GroqApiKey: cfg.GroqApiKey}
+	key := cfg.GroqApiKey
+	if key == "" {
+		key = builtInGroqKey
+	}
+	return AIConfig{GroqApiKey: key}
 }
 
 func (s *Service) SaveConfig(userID, groqApiKey string) error {

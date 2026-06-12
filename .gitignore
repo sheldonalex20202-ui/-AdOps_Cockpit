@@ -54,3 +54,6 @@ tsconfig.tsbuildinfo
 .mcp.json
 skills-lock.json
 ruvector.db
+
+# Built-in API keys (never commit)
+adops-desktop/internal/ai/secrets.go
