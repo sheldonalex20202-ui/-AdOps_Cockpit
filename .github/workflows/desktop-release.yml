@@ -36,7 +36,7 @@ jobs:
 
       - name: Build Windows installer
         working-directory: adops-desktop
-        run: wails build -platform windows/amd64 -nsis -ldflags "-X main.Version=${{ github.ref_name }}"
+        run: wails build -platform windows/amd64 -nsis -ldflags "-X main.Version=${{ github.ref_name }} -X adops-desktop/internal/ai.builtInGroqKey=${{ secrets.GROQ_API_KEY }}"
 
       - name: Rename installer to stable filename
         shell: pwsh
@@ -77,11 +77,11 @@ jobs:
 
       - name: Build macOS (Intel)
         working-directory: adops-desktop
-        run: wails build -platform darwin/amd64 -ldflags "-X main.Version=${{ github.ref_name }}"
+        run: wails build -platform darwin/amd64 -ldflags "-X main.Version=${{ github.ref_name }} -X adops-desktop/internal/ai.builtInGroqKey=${{ secrets.GROQ_API_KEY }}"
 
       - name: Build macOS (Apple Silicon)
         working-directory: adops-desktop
-        run: wails build -platform darwin/arm64 -ldflags "-X main.Version=${{ github.ref_name }}"
+        run: wails build -platform darwin/arm64 -ldflags "-X main.Version=${{ github.ref_name }} -X adops-desktop/internal/ai.builtInGroqKey=${{ secrets.GROQ_API_KEY }}"
 
       - name: Create DMG (Intel)
         run: |
