@@ -245,3 +245,27 @@ export function SaveAutoscaleConfig(arg1, arg2) {
 export function UpdateScaleRule(arg1, arg2) {
   return window['go']['main']['App']['UpdateScaleRule'](arg1, arg2);
 }
+
+export function SendAIMessage(arg1, arg2) {
+  return window['go']['main']['App']['SendAIMessage'](arg1, arg2);
+}
+
+export function ConfirmAIAction(arg1, arg2) {
+  return window['go']['main']['App']['ConfirmAIAction'](arg1, arg2);
+}
+
+export function CancelAIAction(arg1) {
+  return window['go']['main']['App']['CancelAIAction'](arg1);
+}
+
+export function ClearAIConversation(arg1) {
+  return window['go']['main']['App']['ClearAIConversation'](arg1);
+}
+
+export function GetAIConfig() {
+  return window['go']['main']['App']['GetAIConfig']();
+}
+
+export function SaveAIConfig(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SaveAIConfig'](arg1, arg2, arg3);
+}

@@ -198,3 +198,13 @@ export interface ScaleRuleInput {
   cloneCount: number;
   budgetMultiplier: number;
 }
+
+// ─── AI Operator ──────────────────────────────────────────────────────────────
+
+export const sendAIMessage    = (input: string, convID: string) => Go.SendAIMessage(input, convID);
+export const confirmAIAction  = (actionID: string, convID: string) => Go.ConfirmAIAction(actionID, convID);
+export const cancelAIAction   = (actionID: string) => Go.CancelAIAction(actionID);
+export const clearAIConversation = (convID: string) => Go.ClearAIConversation(convID);
+export const getAIConfig      = () => Go.GetAIConfig();
+export const saveAIConfig     = (provider: string, apiKey: string, model: string) =>
+  Go.SaveAIConfig(provider, apiKey, model);

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"adops-desktop/internal/ai"
 	"adops-desktop/internal/audit"
 	"adops-desktop/internal/autocontrol"
 	"adops-desktop/internal/autoscale"
@@ -35,6 +36,7 @@ type App struct {
 	launchSvc  *launch.Service
 	licenseSvc *license.Service
 	authFlow   *authflow.Flow
+	aiSvc      *ai.Service
 
 	// Session
 	currentUserID string
@@ -70,6 +72,7 @@ func (a *App) startup(ctx context.Context) {
 	a.launchSvc = launch.New(gdb)
 	a.licenseSvc = license.New(gdb)
 	a.authFlow = authflow.New()
+	a.aiSvc = ai.New(gdb)
 	a.restoreSession()
 }
 
@@ -1321,6 +1324,52 @@ func orDefault(s, def string) string {
 	}
 	return s
 }
+
+// ─── AI Operator ─────────────────────────────────────────────────────────────
+
+func (a *App) SendAIMessage(input, convID string) ai.SendResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return ai.SendResult{Error: "not_authenticated"}
+	}
+	return a.aiSvc.SendMessage(a.currentUserID, convID, input)
+}
+
+func (a *App) ConfirmAIAction(actionID, convID string) ai.SendResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return ai.SendResult{Error: "not_authenticated"}
+	}
+	return a.aiSvc.ConfirmAction(a.currentUserID, convID, actionID)
+}
+
+func (a *App) CancelAIAction(actionID string) bool {
+	a.waitReady()
+	return a.aiSvc.CancelAction(actionID)
+}
+
+func (a *App) ClearAIConversation(convID string) bool {
+	a.waitReady()
+	return a.aiSvc.ClearConversation(convID)
+}
+
+func (a *App) GetAIConfig() ai.AIConfig {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return ai.AIConfig{}
+	}
+	return a.aiSvc.GetConfig(a.currentUserID)
+}
+
+func (a *App) SaveAIConfig(provider, apiKey, model string) error {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return fmt.Errorf("not_authenticated")
+	}
+	return a.aiSvc.SaveConfig(a.currentUserID, provider, apiKey, model)
+}
+
+// ─── Session ─────────────────────────────────────────────────────────────────
 
 func (a *App) restoreSession() {
 	s, err := session.Load()

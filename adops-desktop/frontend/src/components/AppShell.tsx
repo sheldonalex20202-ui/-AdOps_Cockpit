@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import clsx from "clsx";
 import {
-  Activity, BriefcaseBusiness, FileClock, History, Image,
+  Activity, Bot, BriefcaseBusiness, FileClock, History, Image,
   Layers3, Rocket, Settings, Shield, TrendingUp, LogOut, ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -43,6 +43,11 @@ const navGroups: NavGroup[] = [
       { page: "audit-logs",     label: "Аудит",        Icon: FileClock },
       { page: "integrations",   label: "Настройки",    Icon: Settings },
       { page: "health-checks",  label: "Health checks", Icon: Activity },
+    ],
+  },
+  {
+    items: [
+      { page: "ai-operator", label: "AI Operator", Icon: Bot, badge: "NEW" },
     ],
   },
 ];

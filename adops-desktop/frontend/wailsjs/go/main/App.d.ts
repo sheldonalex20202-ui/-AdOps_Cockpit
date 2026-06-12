@@ -125,3 +125,15 @@ export function GetScaleRules():Promise<main.ScaleRulesResult>;
 export function SaveAutoscaleConfig(arg1:boolean,arg2:number):Promise<void>;
 
 export function UpdateScaleRule(arg1:string,arg2:main.ScaleRuleInput):Promise<db.ScaleRule>;
+
+export function SendAIMessage(arg1:string,arg2:string):Promise<main.AIOperatorResult>;
+
+export function ConfirmAIAction(arg1:string,arg2:string):Promise<main.AIOperatorResult>;
+
+export function CancelAIAction(arg1:string):Promise<boolean>;
+
+export function ClearAIConversation(arg1:string):Promise<boolean>;
+
+export function GetAIConfig():Promise<main.AIConfigResult>;
+
+export function SaveAIConfig(arg1:string,arg2:string,arg3:string):Promise<void>;

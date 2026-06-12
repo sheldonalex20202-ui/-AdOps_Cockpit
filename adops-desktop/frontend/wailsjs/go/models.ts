@@ -1378,6 +1378,38 @@ export namespace main {
 	    }
 	}
 
+	export class AIOperatorResult {
+	    reply: string;
+	    toolsExecuted?: any[];
+	    pendingAction?: any;
+	    navigateTo?: string;
+	    error?: string;
+
+	    static createFrom(source: any = {}) { return new AIOperatorResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.reply = source["reply"];
+	        this.toolsExecuted = source["toolsExecuted"];
+	        this.pendingAction = source["pendingAction"];
+	        this.navigateTo = source["navigateTo"];
+	        this.error = source["error"];
+	    }
+	}
+
+	export class AIConfigResult {
+	    provider: string;
+	    apiKey: string;
+	    model: string;
+
+	    static createFrom(source: any = {}) { return new AIConfigResult(source); }
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.provider = source["provider"];
+	        this.apiKey = source["apiKey"];
+	        this.model = source["model"];
+	    }
+	}
+
 }
 
 export namespace session {
