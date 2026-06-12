@@ -14,68 +14,120 @@ const (
 	groqModel    = "llama-3.3-70b-versatile"
 )
 
-type groqRequest struct {
-	Model     string        `json:"model"`
-	Messages  []groqMessage `json:"messages"`
-	MaxTokens int           `json:"max_tokens"`
+// ─── Message types (OpenAI-compatible) ───────────────────────────────────────
+
+type groqMsg struct {
+	Role       string         `json:"role"`
+	Content    string         `json:"content,omitempty"`
+	ToolCalls  []groqToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string         `json:"tool_call_id,omitempty"`
 }
 
-type groqMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+type groqToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
 }
 
-type groqResponse struct {
+// ─── Tool schema (OpenAI format) ─────────────────────────────────────────────
+
+type groqToolDef struct {
+	Type     string `json:"type"`
+	Function struct {
+		Name        string                 `json:"name"`
+		Description string                 `json:"description"`
+		Parameters  map[string]interface{} `json:"parameters"`
+	} `json:"function"`
+}
+
+// groqToolSchemas converts the local registry to Groq/OpenAI tool format.
+func groqToolSchemas() []groqToolDef {
+	out := make([]groqToolDef, 0, len(registry))
+	for _, t := range registry {
+		var def groqToolDef
+		def.Type = "function"
+		def.Function.Name = t.Name
+		def.Function.Description = t.Description
+		def.Function.Parameters = t.Schema
+		out = append(out, def)
+	}
+	return out
+}
+
+// ─── HTTP call ────────────────────────────────────────────────────────────────
+
+type groqChatReq struct {
+	Model      string        `json:"model"`
+	Messages   []groqMsg     `json:"messages"`
+	Tools      []groqToolDef `json:"tools,omitempty"`
+	ToolChoice string        `json:"tool_choice,omitempty"`
+	MaxTokens  int           `json:"max_tokens"`
+}
+
+type groqChatResp struct {
 	Choices []struct {
 		Message struct {
-			Content string `json:"content"`
+			Role      string         `json:"role"`
+			Content   string         `json:"content"`
+			ToolCalls []groqToolCall `json:"tool_calls"`
 		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error"`
 }
 
-// callGroq sends a single-turn request to Groq and returns the text reply.
-func callGroq(apiKey, systemPrompt, userMessage string) (string, error) {
+// callGroqChat sends messages + tool schemas to Groq and returns the raw response.
+func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
 	if apiKey == "" {
-		return "", fmt.Errorf("groq_key_missing")
+		return nil, fmt.Errorf("groq_key_missing")
 	}
 
-	payload := groqRequest{
+	full := make([]groqMsg, 0, len(messages)+1)
+	if system != "" {
+		full = append(full, groqMsg{Role: "system", Content: system})
+	}
+	full = append(full, messages...)
+
+	req := groqChatReq{
 		Model:     groqModel,
-		MaxTokens: 300,
-		Messages: []groqMessage{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: userMessage},
-		},
+		Messages:  full,
+		MaxTokens: 1024,
 	}
-	body, _ := json.Marshal(payload)
+	if len(tools) > 0 {
+		req.Tools = tools
+		req.ToolChoice = "auto"
+	}
 
-	req, err := http.NewRequest("POST", groqEndpoint, bytes.NewReader(body))
+	body, _ := json.Marshal(req)
+	httpReq, err := http.NewRequest("POST", groqEndpoint, bytes.NewReader(body))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := client.Do(httpReq)
 	if err != nil {
-		return "", fmt.Errorf("Groq недоступен: %v", err)
+		return nil, fmt.Errorf("Groq недоступен: %v", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
-	var result groqResponse
+	var result groqChatResp
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return "", fmt.Errorf("ошибка ответа Groq: %v", err)
+		return nil, fmt.Errorf("ошибка ответа Groq: %v", err)
 	}
 	if result.Error != nil {
-		return "", fmt.Errorf("Groq ошибка: %s", result.Error.Message)
+		return nil, fmt.Errorf("Groq: %s", result.Error.Message)
 	}
 	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("пустой ответ от Groq")
+		return nil, fmt.Errorf("пустой ответ от Groq")
 	}
-	return result.Choices[0].Message.Content, nil
+	return &result, nil
 }

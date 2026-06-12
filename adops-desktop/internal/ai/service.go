@@ -3,6 +3,7 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,18 +16,19 @@ import (
 // builtInGroqKey is populated by secrets.go (gitignored).
 var builtInGroqKey = ""
 
-// Service orchestrates command parsing and execution.
+// Service orchestrates Groq agentic loops with local tool execution.
 type Service struct {
-	gdb     *gorm.DB
-	mu      sync.Mutex
-	pending map[string]*PendingAction
+	gdb           *gorm.DB
+	mu            sync.Mutex
+	conversations map[string][]groqMsg
+	pending       map[string]*PendingAction
 }
 
-// New creates a new AI service.
 func New(gdb *gorm.DB) *Service {
 	return &Service{
-		gdb:     gdb,
-		pending: make(map[string]*PendingAction),
+		gdb:           gdb,
+		conversations: make(map[string][]groqMsg),
+		pending:       make(map[string]*PendingAction),
 	}
 }
 
@@ -55,20 +57,27 @@ func (s *Service) SaveConfig(userID, groqApiKey string) error {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-// SendMessage parses input and routes to local executor or Groq fallback.
+// SendMessage routes the input: slash commands execute instantly, everything
+// else goes through the Groq agentic loop (Groq picks the right tool).
 func (s *Service) SendMessage(userID, convID, input string) SendResult {
-	cmd := Parse(input)
-	if cmd.UseGroq {
-		cfg := s.GetConfig(userID)
-		return s.handleGroq(userID, cfg.GroqApiKey, input)
+	trimmed := strings.TrimSpace(input)
+
+	// Fast path: explicit slash commands bypass Groq entirely (0 tokens).
+	if strings.HasPrefix(trimmed, "/") {
+		cmd := Parse(trimmed)
+		if cmd.Tool == "show_help" {
+			return SendResult{Reply: helpText()}
+		}
+		if !cmd.UseGroq {
+			return s.executeCommand(userID, cmd)
+		}
 	}
-	if cmd.Tool == "show_help" {
-		return SendResult{Reply: helpText()}
-	}
-	return s.executeCommand(userID, cmd)
+
+	// All natural language → Groq agentic loop.
+	return s.runGroqLoop(userID, convID, input)
 }
 
-// ConfirmAction executes a previously stored pending action.
+// ConfirmAction executes a pending tool call and resumes the Groq loop.
 func (s *Service) ConfirmAction(userID, convID, actionID string) SendResult {
 	s.mu.Lock()
 	pa := s.pending[actionID]
@@ -88,14 +97,49 @@ func (s *Service) ConfirmAction(userID, convID, actionID string) SendResult {
 	if tool == nil {
 		return SendResult{Error: "unknown tool: " + pa.ToolName}
 	}
-	result, err := tool.Execute(s.gdb, userID, pa.Input)
+
+	result, execErr := tool.Execute(s.gdb, userID, pa.Input)
 	exec := ToolExecution{ToolName: pa.ToolName, Label: pa.Label, Risk: pa.Risk, Params: pa.Input}
-	if err != nil {
-		exec.Error = err.Error()
+	if execErr != nil {
+		exec.Error = execErr.Error()
 	} else {
 		exec.Result = result
 	}
-	return SendResult{ToolsExecuted: []ToolExecution{exec}}
+
+	// Feed result back into conversation history.
+	resultJSON, _ := json.Marshal(result)
+	if execErr != nil {
+		resultJSON = []byte(fmt.Sprintf(`{"error":"%s"}`, execErr.Error()))
+	}
+	s.mu.Lock()
+	s.conversations[convID] = append(s.conversations[convID], groqMsg{
+		Role:       "tool",
+		ToolCallID: pa.ToolUseID,
+		Content:    string(resultJSON),
+	})
+	s.mu.Unlock()
+
+	// Resume Groq to generate final text answer.
+	cfg := s.GetConfig(userID)
+	system := s.buildGroqSystem(userID)
+
+	s.mu.Lock()
+	history := make([]groqMsg, len(s.conversations[convID]))
+	copy(history, s.conversations[convID])
+	s.mu.Unlock()
+
+	resp, err := callGroqChat(cfg.GroqApiKey, system, history, nil) // no tools for final answer
+	if err != nil {
+		return SendResult{ToolsExecuted: []ToolExecution{exec}, Error: err.Error()}
+	}
+	finalContent := resp.Choices[0].Message.Content
+	s.mu.Lock()
+	s.conversations[convID] = append(s.conversations[convID], groqMsg{
+		Role: "assistant", Content: finalContent,
+	})
+	s.mu.Unlock()
+
+	return SendResult{Reply: finalContent, ToolsExecuted: []ToolExecution{exec}}
 }
 
 // CancelAction removes a pending action.
@@ -107,13 +151,143 @@ func (s *Service) CancelAction(actionID string) bool {
 	return ok
 }
 
-// ClearConversation is a no-op in command mode (stateless).
-func (s *Service) ClearConversation(convID string) bool { return true }
+// ClearConversation removes conversation history for a session.
+func (s *Service) ClearConversation(convID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.conversations, convID)
+	return true
+}
 
-// ─── Command executor ─────────────────────────────────────────────────────────
+// ─── Groq agentic loop ────────────────────────────────────────────────────────
+
+func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
+	cfg := s.GetConfig(userID)
+
+	s.mu.Lock()
+	s.conversations[convID] = append(s.conversations[convID], groqMsg{
+		Role: "user", Content: input,
+	})
+	s.mu.Unlock()
+
+	system := s.buildGroqSystem(userID)
+	tools := groqToolSchemas()
+	var allExecs []ToolExecution
+
+	for iter := 0; iter < 5; iter++ {
+		s.mu.Lock()
+		history := make([]groqMsg, len(s.conversations[convID]))
+		copy(history, s.conversations[convID])
+		s.mu.Unlock()
+
+		resp, err := callGroqChat(cfg.GroqApiKey, system, history, tools)
+		if err != nil {
+			return SendResult{Error: err.Error(), ToolsExecuted: allExecs}
+		}
+
+		msg := resp.Choices[0].Message
+
+		// No tool calls → final answer.
+		if len(msg.ToolCalls) == 0 {
+			s.mu.Lock()
+			s.conversations[convID] = append(s.conversations[convID], groqMsg{
+				Role: "assistant", Content: msg.Content,
+			})
+			s.mu.Unlock()
+
+			nav := ""
+			for _, e := range allExecs {
+				if e.ToolName == "navigation_open_page" {
+					if r, ok := e.Result.(map[string]interface{}); ok {
+						nav, _ = r["page"].(string)
+					}
+				}
+			}
+			return SendResult{Reply: msg.Content, ToolsExecuted: allExecs, NavigateTo: nav}
+		}
+
+		// Append assistant turn (with tool_calls) to history.
+		s.mu.Lock()
+		s.conversations[convID] = append(s.conversations[convID], groqMsg{
+			Role:      "assistant",
+			Content:   msg.Content,
+			ToolCalls: msg.ToolCalls,
+		})
+		s.mu.Unlock()
+
+		// Execute each tool call.
+		for _, tc := range msg.ToolCalls {
+			toolName := tc.Function.Name
+			var params map[string]interface{}
+			_ = json.Unmarshal([]byte(tc.Function.Arguments), &params)
+
+			tool := GetTool(toolName)
+			if tool == nil {
+				s.mu.Lock()
+				s.conversations[convID] = append(s.conversations[convID], groqMsg{
+					Role: "tool", ToolCallID: tc.ID,
+					Content: fmt.Sprintf(`{"error":"unknown tool: %s"}`, toolName),
+				})
+				s.mu.Unlock()
+				continue
+			}
+
+			// Needs confirmation → pause, wait for user.
+			if tool.RequiresConfirmation {
+				actionID := uuid.NewString()
+				pa := &PendingAction{
+					ID:        actionID,
+					ToolUseID: tc.ID,
+					ToolName:  toolName,
+					Input:     params,
+					Summary:   buildSummary(toolName, params),
+					Risk:      tool.Risk,
+					Label:     labelForTool(toolName),
+					ExpiresAt: time.Now().Add(5 * time.Minute),
+				}
+				s.mu.Lock()
+				s.pending[actionID] = pa
+				s.mu.Unlock()
+				return SendResult{
+					Reply:         msg.Content,
+					ToolsExecuted: allExecs,
+					PendingAction: pa,
+				}
+			}
+
+			// Execute immediately.
+			result, execErr := tool.Execute(s.gdb, userID, params)
+			exec := ToolExecution{
+				ToolName: toolName, Label: labelForTool(toolName),
+				Risk: tool.Risk, Params: params,
+			}
+			if execErr != nil {
+				exec.Error = execErr.Error()
+			} else {
+				exec.Result = result
+			}
+			allExecs = append(allExecs, exec)
+
+			// Feed result back to Groq.
+			resultJSON, _ := json.Marshal(result)
+			if execErr != nil {
+				resultJSON = []byte(fmt.Sprintf(`{"error":"%s"}`, execErr.Error()))
+			}
+			s.mu.Lock()
+			s.conversations[convID] = append(s.conversations[convID], groqMsg{
+				Role: "tool", ToolCallID: tc.ID,
+				Content: string(resultJSON),
+			})
+			s.mu.Unlock()
+		}
+	}
+
+	return SendResult{Error: "превышено число шагов", ToolsExecuted: allExecs}
+}
+
+// ─── Slash command executor (fast path) ──────────────────────────────────────
 
 func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
-	// Compound: explain by name query — find account first.
 	if cmd.Tool == "accounts_explain_readiness" {
 		if query, ok := cmd.Params["query"].(string); ok && query != "" {
 			var acc db.MetaAdAccount
@@ -123,7 +297,6 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 			).Order("readiness_score asc").First(&acc).Error == nil {
 				cmd.Params = map[string]interface{}{"accountId": acc.ID}
 			} else {
-				// Fall back to search so user can pick
 				return s.executeCommand(userID, &ParsedCommand{
 					Tool:   "accounts_search",
 					Params: map[string]interface{}{"search": query},
@@ -134,7 +307,6 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 		}
 	}
 
-	// Compound: add accounts by pool name + filters.
 	if cmd.Tool == "pools_add_accounts" {
 		if poolQuery, ok := cmd.Params["poolQuery"].(string); ok {
 			var pool db.AccountPool
@@ -166,12 +338,10 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 		return SendResult{Reply: "Команда не найдена. " + helpText()}
 	}
 
-	// Needs user confirmation before executing.
 	if tool.RequiresConfirmation {
 		actionID := uuid.NewString()
 		pa := &PendingAction{
-			ID:        actionID,
-			ToolUseID: actionID,
+			ID: actionID, ToolUseID: actionID,
 			ToolName:  cmd.Tool,
 			Input:     cmd.Params,
 			Summary:   buildSummary(cmd.Tool, cmd.Params),
@@ -185,7 +355,6 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 		return SendResult{PendingAction: pa}
 	}
 
-	// Execute immediately.
 	result, err := tool.Execute(s.gdb, userID, cmd.Params)
 	exec := ToolExecution{
 		ToolName: cmd.Tool, Label: labelForTool(cmd.Tool),
@@ -203,37 +372,27 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 			nav, _ = r["page"].(string)
 		}
 	}
-
 	return SendResult{ToolsExecuted: []ToolExecution{exec}, NavigateTo: nav}
 }
 
-// ─── Groq fallback ────────────────────────────────────────────────────────────
+// ─── System prompt ────────────────────────────────────────────────────────────
 
-func (s *Service) handleGroq(userID, groqApiKey, input string) SendResult {
-	if groqApiKey == "" {
-		return SendResult{Reply: "Команда не распознана.\n\n" + helpText()}
-	}
-
-	var total, ready, blocked int64
+func (s *Service) buildGroqSystem(userID string) string {
+	var total, ready, blocked, poolCount int64
 	s.gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false", userID).Count(&total)
 	s.gdb.Model(&db.MetaAdAccount{}).
 		Where("user_id = ? AND archived = false AND readiness_status = 'READY'", userID).Count(&ready)
 	s.gdb.Model(&db.MetaAdAccount{}).
 		Where("user_id = ? AND archived = false AND readiness_status = 'BLOCKED'", userID).Count(&blocked)
+	s.gdb.Model(&db.AccountPool{}).Where("user_id = ?", userID).Count(&poolCount)
 
-	system := fmt.Sprintf(
-		"Ты помощник AdOps Cockpit — инструмента медиабаера Facebook. "+
-			"Workspace: %d кабинетов (%d READY, %d BLOCKED). "+
-			"Команды: /кабинеты, /health, /пул [название], /лог, /статус, /объясни [кабинет], /открой [страница]. "+
-			"Отвечай по-русски кратко (1-3 предложения). Предлагай команды для действий.",
-		total, ready, blocked,
+	return fmt.Sprintf(
+		"Ты AI Operator в AdOps Cockpit — инструменте медиабаера Facebook.\n"+
+			"Workspace: %d кабинетов (%d READY, %d BLOCKED), %d пулов.\n"+
+			"Всегда используй инструменты для получения реальных данных — не придумывай.\n"+
+			"Отвечай по-русски кратко и конкретно.",
+		total, ready, blocked, poolCount,
 	)
-
-	reply, err := callGroq(groqApiKey, system, input)
-	if err != nil {
-		return SendResult{Error: err.Error()}
-	}
-	return SendResult{Reply: reply}
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -257,12 +416,12 @@ func buildSummary(toolName string, params map[string]interface{}) string {
 
 func helpText() string {
 	return "Доступные команды:\n" +
-		"/кабинеты [ready|blocked|limited] [поиск] — поиск\n" +
-		"/health [all] — health check\n" +
-		"/пул [название] — создать пул\n" +
-		"/пул добавить [пул] [ready|blocked] — добавить кабинеты\n" +
-		"/статус — обзор workspace\n" +
-		"/лог [N] — последние N действий\n" +
-		"/объясни [кабинет] — анализ readiness\n" +
-		"/открой [страница] — перейти"
+		"/кабинеты [ready|blocked|limited] [поиск]\n" +
+		"/health [all]\n" +
+		"/пул [название]\n" +
+		"/пул добавить [пул] [ready|blocked]\n" +
+		"/статус\n" +
+		"/лог [N]\n" +
+		"/объясни [кабинет]\n" +
+		"/открой [страница]"
 }
