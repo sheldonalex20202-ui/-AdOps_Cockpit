@@ -30,6 +30,7 @@ var registry = map[string]*Tool{
 	"health_run_bulk":            toolHealthRunBulk,
 	"audit_recent":               toolAuditRecent,
 	"navigation_open_page":       toolNavigationOpenPage,
+	"workspace_status":           toolWorkspaceStatus,
 }
 
 // GetTool returns a tool by name or nil.
@@ -58,6 +59,7 @@ func labelForTool(name string) string {
 		"health_run_bulk":            "Health Check",
 		"audit_recent":               "Лог действий",
 		"navigation_open_page":       "Навигация",
+		"workspace_status":           "Обзор workspace",
 	}
 	if l, ok := m[name]; ok {
 		return l
@@ -345,6 +347,35 @@ var toolAuditRecent = &Tool{
 			})
 		}
 		return map[string]interface{}{"count": len(entries), "entries": entries}, nil
+	},
+}
+
+// ─── workspace_status ─────────────────────────────────────────────────────────
+
+var toolWorkspaceStatus = &Tool{
+	Name:        "workspace_status",
+	Description: "Show workspace overview: account stats, pool count, activity today.",
+	Risk:        RiskRead,
+	Schema: map[string]interface{}{
+		"type":       "object",
+		"properties": map[string]interface{}{},
+	},
+	Execute: func(gdb *gorm.DB, userID string, input map[string]interface{}) (interface{}, error) {
+		var total, ready, needsAttention, blocked, poolCount, actionsToday int64
+		gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false", userID).Count(&total)
+		gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false AND readiness_status = ?", userID, "READY").Count(&ready)
+		gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false AND readiness_status = ?", userID, "NEEDS_ATTENTION").Count(&needsAttention)
+		gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false AND readiness_status = ?", userID, "BLOCKED").Count(&blocked)
+		gdb.Model(&db.AccountPool{}).Where("user_id = ?", userID).Count(&poolCount)
+		gdb.Model(&db.AuditLog{}).Where("user_id = ? AND created_at > ?", userID, time.Now().Add(-24*time.Hour)).Count(&actionsToday)
+		return map[string]interface{}{
+			"totalAccounts":  total,
+			"ready":          ready,
+			"needsAttention": needsAttention,
+			"blocked":        blocked,
+			"poolCount":      poolCount,
+			"actionsToday":   actionsToday,
+		}, nil
 	},
 }
 

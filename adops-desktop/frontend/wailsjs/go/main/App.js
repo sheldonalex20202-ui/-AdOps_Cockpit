@@ -266,6 +266,6 @@ export function GetAIConfig() {
   return window['go']['main']['App']['GetAIConfig']();
 }
 
-export function SaveAIConfig(arg1, arg2, arg3) {
-  return window['go']['main']['App']['SaveAIConfig'](arg1, arg2, arg3);
+export function SaveAIConfig(arg1) {
+  return window['go']['main']['App']['SaveAIConfig'](arg1);
 }

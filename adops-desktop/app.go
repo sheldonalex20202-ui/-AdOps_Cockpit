@@ -1361,12 +1361,12 @@ func (a *App) GetAIConfig() ai.AIConfig {
 	return a.aiSvc.GetConfig(a.currentUserID)
 }
 
-func (a *App) SaveAIConfig(provider, apiKey, model string) error {
+func (a *App) SaveAIConfig(groqApiKey string) error {
 	a.waitReady()
 	if a.currentUserID == "" {
 		return fmt.Errorf("not_authenticated")
 	}
-	return a.aiSvc.SaveConfig(a.currentUserID, provider, apiKey, model)
+	return a.aiSvc.SaveConfig(a.currentUserID, groqApiKey)
 }
 
 // ─── Session ─────────────────────────────────────────────────────────────────

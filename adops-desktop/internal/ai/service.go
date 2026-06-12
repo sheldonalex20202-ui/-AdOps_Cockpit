@@ -1,11 +1,8 @@
 package ai
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"sync"
 	"time"
 
@@ -15,27 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	anthropicEndpoint = "https://api.anthropic.com/v1/messages"
-	anthropicVersion  = "2023-06-01"
-	defaultModel      = "claude-haiku-4-5-20251001"
-	maxIterations     = 4
-)
-
-// Service orchestrates AI conversations.
+// Service orchestrates command parsing and execution.
 type Service struct {
-	gdb           *gorm.DB
-	mu            sync.Mutex
-	conversations map[string][]apiMsg
-	pending       map[string]*PendingAction
+	gdb     *gorm.DB
+	mu      sync.Mutex
+	pending map[string]*PendingAction
 }
 
 // New creates a new AI service.
 func New(gdb *gorm.DB) *Service {
 	return &Service{
-		gdb:           gdb,
-		conversations: make(map[string][]apiMsg),
-		pending:       make(map[string]*PendingAction),
+		gdb:     gdb,
+		pending: make(map[string]*PendingAction),
 	}
 }
 
@@ -44,58 +32,37 @@ func New(gdb *gorm.DB) *Service {
 func (s *Service) GetConfig(userID string) AIConfig {
 	var cfg db.AIConfig
 	s.gdb.Where("user_id = ?", userID).First(&cfg)
-	return AIConfig{
-		Provider: orDefault(cfg.Provider, "anthropic"),
-		ApiKey:   cfg.ApiKey,
-		Model:    orDefault(cfg.Model, defaultModel),
-	}
+	return AIConfig{GroqApiKey: cfg.GroqApiKey}
 }
 
-func (s *Service) SaveConfig(userID, provider, apiKey, model string) error {
-	if model == "" {
-		model = defaultModel
-	}
-	if provider == "" {
-		provider = "anthropic"
-	}
+func (s *Service) SaveConfig(userID, groqApiKey string) error {
 	var existing db.AIConfig
 	err := s.gdb.Where("user_id = ?", userID).First(&existing).Error
 	if err != nil {
 		return s.gdb.Create(&db.AIConfig{
-			ID: uuid.NewString(), UserID: userID,
-			Provider: provider, ApiKey: apiKey, Model: model,
+			ID: uuid.NewString(), UserID: userID, GroqApiKey: groqApiKey,
 		}).Error
 	}
-	return s.gdb.Model(&existing).Updates(map[string]interface{}{
-		"provider": provider, "api_key": apiKey, "model": model,
-	}).Error
+	return s.gdb.Model(&existing).Update("groq_api_key", groqApiKey).Error
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-// SendMessage handles a user prompt.
+// SendMessage parses input and routes to local executor or Groq fallback.
 func (s *Service) SendMessage(userID, convID, input string) SendResult {
-	cfg := s.GetConfig(userID)
-	if cfg.ApiKey == "" {
-		return SendResult{Error: "api_key_missing"}
+	cmd := Parse(input)
+	if cmd.UseGroq {
+		cfg := s.GetConfig(userID)
+		return s.handleGroq(userID, cfg.GroqApiKey, input)
 	}
-
-	s.mu.Lock()
-	s.conversations[convID] = append(s.conversations[convID], apiMsg{
-		"role": "user", "content": input,
-	})
-	s.mu.Unlock()
-
-	return s.runLoop(userID, convID, cfg, nil)
+	if cmd.Tool == "show_help" {
+		return SendResult{Reply: helpText()}
+	}
+	return s.executeCommand(userID, cmd)
 }
 
-// ConfirmAction executes a pending action and continues the conversation.
+// ConfirmAction executes a previously stored pending action.
 func (s *Service) ConfirmAction(userID, convID, actionID string) SendResult {
-	cfg := s.GetConfig(userID)
-	if cfg.ApiKey == "" {
-		return SendResult{Error: "api_key_missing"}
-	}
-
 	s.mu.Lock()
 	pa := s.pending[actionID]
 	if pa == nil {
@@ -114,52 +81,17 @@ func (s *Service) ConfirmAction(userID, convID, actionID string) SendResult {
 	if tool == nil {
 		return SendResult{Error: "unknown tool: " + pa.ToolName}
 	}
-
-	result, execErr := tool.Execute(s.gdb, userID, pa.Input)
-	exec := ToolExecution{
-		ToolName: pa.ToolName, Label: labelForTool(pa.ToolName),
-		Risk: pa.Risk, Params: pa.Input,
-	}
-	if execErr != nil {
-		exec.Error = execErr.Error()
+	result, err := tool.Execute(s.gdb, userID, pa.Input)
+	exec := ToolExecution{ToolName: pa.ToolName, Label: pa.Label, Risk: pa.Risk, Params: pa.Input}
+	if err != nil {
+		exec.Error = err.Error()
 	} else {
 		exec.Result = result
 	}
-
-	resultJSON, _ := json.Marshal(result)
-	if execErr != nil {
-		resultJSON = []byte(`{"error":"` + execErr.Error() + `"}`)
-	}
-
-	s.mu.Lock()
-	s.conversations[convID] = append(s.conversations[convID],
-		apiMsg{
-			"role": "assistant",
-			"content": []interface{}{
-				map[string]interface{}{
-					"type": "tool_use", "id": pa.ToolUseID,
-					"name": pa.ToolName, "input": pa.Input,
-				},
-			},
-		},
-		apiMsg{
-			"role": "user",
-			"content": []interface{}{
-				map[string]interface{}{
-					"type": "tool_result", "tool_use_id": pa.ToolUseID,
-					"content": string(resultJSON),
-				},
-			},
-		},
-	)
-	s.mu.Unlock()
-
-	res := s.runLoop(userID, convID, cfg, nil)
-	res.ToolsExecuted = append([]ToolExecution{exec}, res.ToolsExecuted...)
-	return res
+	return SendResult{ToolsExecuted: []ToolExecution{exec}}
 }
 
-// CancelAction cancels a pending action.
+// CancelAction removes a pending action.
 func (s *Service) CancelAction(actionID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -168,242 +100,162 @@ func (s *Service) CancelAction(actionID string) bool {
 	return ok
 }
 
-// ClearConversation removes conversation history.
-func (s *Service) ClearConversation(convID string) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.conversations, convID)
-	return true
-}
+// ClearConversation is a no-op in command mode (stateless).
+func (s *Service) ClearConversation(convID string) bool { return true }
 
-// ─── Agentic loop ────────────────────────────────────────────────────────────
+// ─── Command executor ─────────────────────────────────────────────────────────
 
-func (s *Service) runLoop(userID, convID string, cfg AIConfig, prevExecs []ToolExecution) SendResult {
-	systemPrompt := s.buildSystemPrompt(userID)
+func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
+	// Compound: explain by name query — find account first.
+	if cmd.Tool == "accounts_explain_readiness" {
+		if query, ok := cmd.Params["query"].(string); ok && query != "" {
+			var acc db.MetaAdAccount
+			if s.gdb.Where(
+				"user_id = ? AND archived = false AND (name LIKE ? OR external_id LIKE ?)",
+				userID, "%"+query+"%", "%"+query+"%",
+			).Order("readiness_score asc").First(&acc).Error == nil {
+				cmd.Params = map[string]interface{}{"accountId": acc.ID}
+			} else {
+				// Fall back to search so user can pick
+				return s.executeCommand(userID, &ParsedCommand{
+					Tool:   "accounts_search",
+					Params: map[string]interface{}{"search": query},
+				})
+			}
+		} else if _, hasID := cmd.Params["accountId"]; !hasID {
+			return SendResult{Reply: "Укажи название: /объясни [название кабинета]"}
+		}
+	}
 
-	for i := 0; i < maxIterations; i++ {
+	// Compound: add accounts by pool name + filters.
+	if cmd.Tool == "pools_add_accounts" {
+		if poolQuery, ok := cmd.Params["poolQuery"].(string); ok {
+			var pool db.AccountPool
+			if s.gdb.Where("user_id = ? AND name LIKE ?", userID, "%"+poolQuery+"%").
+				First(&pool).Error != nil {
+				return SendResult{Error: fmt.Sprintf("Пул «%s» не найден", poolQuery)}
+			}
+			filters, _ := cmd.Params["filters"].(map[string]interface{})
+			if filters == nil {
+				filters = map[string]interface{}{}
+			}
+			searchTool := GetTool("accounts_search")
+			raw, _ := searchTool.Execute(s.gdb, userID, filters)
+			b, _ := json.Marshal(raw)
+			var sr struct {
+				Accounts []struct{ ID string `json:"id"` } `json:"accounts"`
+			}
+			_ = json.Unmarshal(b, &sr)
+			ids := make([]interface{}, 0, len(sr.Accounts))
+			for _, a := range sr.Accounts {
+				ids = append(ids, a.ID)
+			}
+			cmd.Params = map[string]interface{}{"poolId": pool.ID, "accountIds": ids}
+		}
+	}
+
+	tool := GetTool(cmd.Tool)
+	if tool == nil {
+		return SendResult{Reply: "Команда не найдена. " + helpText()}
+	}
+
+	// Needs user confirmation before executing.
+	if tool.RequiresConfirmation {
+		actionID := uuid.NewString()
+		pa := &PendingAction{
+			ID:        actionID,
+			ToolUseID: actionID,
+			ToolName:  cmd.Tool,
+			Input:     cmd.Params,
+			Summary:   buildSummary(cmd.Tool, cmd.Params),
+			Risk:      tool.Risk,
+			Label:     labelForTool(cmd.Tool),
+			ExpiresAt: time.Now().Add(5 * time.Minute),
+		}
 		s.mu.Lock()
-		history := make([]apiMsg, len(s.conversations[convID]))
-		copy(history, s.conversations[convID])
+		s.pending[actionID] = pa
 		s.mu.Unlock()
-
-		resp, err := callAnthropic(cfg, systemPrompt, history)
-		if err != nil {
-			return SendResult{Error: err.Error(), ToolsExecuted: prevExecs}
-		}
-
-		var textParts []string
-		var toolUses []map[string]interface{}
-		for _, block := range resp.Content {
-			switch block["type"] {
-			case "text":
-				if t, ok := block["text"].(string); ok {
-					textParts = append(textParts, t)
-				}
-			case "tool_use":
-				toolUses = append(toolUses, block)
-			}
-		}
-
-		reply := ""
-		if len(textParts) > 0 {
-			reply = textParts[0]
-		}
-
-		// No tool calls → conversation complete.
-		if len(toolUses) == 0 {
-			s.mu.Lock()
-			s.conversations[convID] = append(s.conversations[convID], apiMsg{
-				"role": "assistant", "content": reply,
-			})
-			s.mu.Unlock()
-
-			nav := ""
-			for _, e := range prevExecs {
-				if e.ToolName == "navigation_open_page" {
-					if r, ok := e.Result.(map[string]interface{}); ok {
-						nav, _ = r["page"].(string)
-					}
-				}
-			}
-			return SendResult{Reply: reply, ToolsExecuted: prevExecs, NavigateTo: nav}
-		}
-
-		// Handle first tool use.
-		tu := toolUses[0]
-		toolName, _ := tu["name"].(string)
-		toolUseID, _ := tu["id"].(string)
-
-		var toolInput map[string]interface{}
-		switch v := tu["input"].(type) {
-		case map[string]interface{}:
-			toolInput = v
-		default:
-			b, _ := json.Marshal(tu["input"])
-			_ = json.Unmarshal(b, &toolInput)
-		}
-
-		tool := GetTool(toolName)
-		if tool == nil {
-			return SendResult{Error: "unknown tool: " + toolName, ToolsExecuted: prevExecs}
-		}
-
-		// Needs confirmation → pause and wait.
-		if tool.RequiresConfirmation {
-			actionID := uuid.NewString()
-			pa := &PendingAction{
-				ID: actionID, ToolUseID: toolUseID,
-				ToolName: toolName, Input: toolInput,
-				Summary:   fmt.Sprintf("%s: %v", labelForTool(toolName), toolInput),
-				Risk:      tool.Risk,
-				Label:     labelForTool(toolName),
-				ExpiresAt: time.Now().Add(5 * time.Minute),
-			}
-			s.mu.Lock()
-			s.pending[actionID] = pa
-			s.conversations[convID] = append(s.conversations[convID], apiMsg{
-				"role": "assistant",
-				"content": []interface{}{
-					map[string]interface{}{
-						"type": "tool_use", "id": toolUseID,
-						"name": toolName, "input": toolInput,
-					},
-				},
-			})
-			s.mu.Unlock()
-			return SendResult{Reply: reply, ToolsExecuted: prevExecs, PendingAction: pa}
-		}
-
-		// Execute immediately.
-		result, execErr := tool.Execute(s.gdb, userID, toolInput)
-		exec := ToolExecution{
-			ToolName: toolName, Label: labelForTool(toolName),
-			Risk: tool.Risk, Params: toolInput,
-		}
-		if execErr != nil {
-			exec.Error = execErr.Error()
-		} else {
-			exec.Result = result
-		}
-		prevExecs = append(prevExecs, exec)
-
-		resultJSON, _ := json.Marshal(result)
-		if execErr != nil {
-			resultJSON = []byte(`{"error":"` + execErr.Error() + `"}`)
-		}
-
-		s.mu.Lock()
-		s.conversations[convID] = append(s.conversations[convID],
-			apiMsg{
-				"role": "assistant",
-				"content": []interface{}{
-					map[string]interface{}{
-						"type": "tool_use", "id": toolUseID,
-						"name": toolName, "input": toolInput,
-					},
-				},
-			},
-			apiMsg{
-				"role": "user",
-				"content": []interface{}{
-					map[string]interface{}{
-						"type": "tool_result", "tool_use_id": toolUseID,
-						"content": string(resultJSON),
-					},
-				},
-			},
-		)
-		s.mu.Unlock()
+		return SendResult{PendingAction: pa}
 	}
 
-	return SendResult{Error: "превышено число шагов", ToolsExecuted: prevExecs}
-}
-
-// ─── System prompt ───────────────────────────────────────────────────────────
-
-func (s *Service) buildSystemPrompt(userID string) string {
-	var total, ready, blocked, poolCount int64
-	s.gdb.Model(&db.MetaAdAccount{}).
-		Where("user_id = ? AND archived = false", userID).Count(&total)
-	s.gdb.Model(&db.MetaAdAccount{}).
-		Where("user_id = ? AND archived = false AND readiness_status = ?", userID, "READY").Count(&ready)
-	s.gdb.Model(&db.MetaAdAccount{}).
-		Where("user_id = ? AND archived = false AND readiness_status = ?", userID, "BLOCKED").Count(&blocked)
-	s.gdb.Model(&db.AccountPool{}).
-		Where("user_id = ?", userID).Count(&poolCount)
-
-	return fmt.Sprintf(`Ты AI Operator в приложении AdOps Cockpit — рабочем столе медиабаера Facebook.
-
-Workspace прямо сейчас:
-- Кабинетов: %d (READY: %d, BLOCKED: %d)
-- Пулов: %d
-
-Твои возможности:
-- Находить кабинеты по статусу, readiness, названию, пулу
-- Объяснять проблемы readiness конкретного кабинета
-- Создавать пулы и добавлять в них кабинеты
-- Запускать health checks
-- Показывать историю действий
-- Переходить на нужные страницы
-
-Правила:
-- Всегда отвечай по-русски
-- Будь кратким и конкретным
-- Используй инструменты для реальных данных
-- Не придумывай данные — используй только то, что вернул инструмент
-- После успешного действия предложи следующий логичный шаг
-- Опасные массовые операции (добавление в пул) уточни у пользователя`, total, ready, blocked, poolCount)
-}
-
-// ─── Anthropic HTTP ──────────────────────────────────────────────────────────
-
-type anthropicResp struct {
-	Content []map[string]interface{} `json:"content"`
-	Err     *struct {
-		Message string `json:"message"`
-	} `json:"error"`
-}
-
-func callAnthropic(cfg AIConfig, system string, messages []apiMsg) (*anthropicResp, error) {
-	payload := map[string]interface{}{
-		"model":      cfg.Model,
-		"max_tokens": 1024,
-		"system":     system,
-		"tools":      AllToolSchemas(),
-		"messages":   messages,
+	// Execute immediately.
+	result, err := tool.Execute(s.gdb, userID, cmd.Params)
+	exec := ToolExecution{
+		ToolName: cmd.Tool, Label: labelForTool(cmd.Tool),
+		Risk: tool.Risk, Params: cmd.Params,
 	}
-
-	body, _ := json.Marshal(payload)
-	req, err := http.NewRequest("POST", anthropicEndpoint, bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		exec.Error = err.Error()
+	} else {
+		exec.Result = result
 	}
-	req.Header.Set("x-api-key", cfg.ApiKey)
-	req.Header.Set("anthropic-version", anthropicVersion)
-	req.Header.Set("content-type", "application/json")
 
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("не удалось подключиться к AI: %v", err)
+	nav := ""
+	if cmd.Tool == "navigation_open_page" {
+		if r, ok := result.(map[string]interface{}); ok {
+			nav, _ = r["page"].(string)
+		}
 	}
-	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
-
-	var result anthropicResp
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("ошибка разбора ответа API: %v", err)
-	}
-	if result.Err != nil {
-		return nil, fmt.Errorf("AI ошибка: %s", result.Err.Message)
-	}
-	return &result, nil
+	return SendResult{ToolsExecuted: []ToolExecution{exec}, NavigateTo: nav}
 }
 
-func orDefault(s, def string) string {
-	if s == "" {
-		return def
+// ─── Groq fallback ────────────────────────────────────────────────────────────
+
+func (s *Service) handleGroq(userID, groqApiKey, input string) SendResult {
+	if groqApiKey == "" {
+		return SendResult{Reply: "Команда не распознана.\n\n" + helpText()}
 	}
-	return s
+
+	var total, ready, blocked int64
+	s.gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false", userID).Count(&total)
+	s.gdb.Model(&db.MetaAdAccount{}).
+		Where("user_id = ? AND archived = false AND readiness_status = 'READY'", userID).Count(&ready)
+	s.gdb.Model(&db.MetaAdAccount{}).
+		Where("user_id = ? AND archived = false AND readiness_status = 'BLOCKED'", userID).Count(&blocked)
+
+	system := fmt.Sprintf(
+		"Ты помощник AdOps Cockpit — инструмента медиабаера Facebook. "+
+			"Workspace: %d кабинетов (%d READY, %d BLOCKED). "+
+			"Команды: /кабинеты, /health, /пул [название], /лог, /статус, /объясни [кабинет], /открой [страница]. "+
+			"Отвечай по-русски кратко (1-3 предложения). Предлагай команды для действий.",
+		total, ready, blocked,
+	)
+
+	reply, err := callGroq(groqApiKey, system, input)
+	if err != nil {
+		return SendResult{Error: err.Error()}
+	}
+	return SendResult{Reply: reply}
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+func buildSummary(toolName string, params map[string]interface{}) string {
+	switch toolName {
+	case "pools_add_accounts":
+		ids, _ := params["accountIds"].([]interface{})
+		poolId, _ := params["poolId"].(string)
+		return fmt.Sprintf("Добавить %d кабинетов в пул %s", len(ids), poolId)
+	case "health_run_bulk":
+		if all, _ := params["all"].(bool); all {
+			return "Запустить health check для всех кабинетов"
+		}
+		ids, _ := params["accountIds"].([]interface{})
+		return fmt.Sprintf("Запустить health check для %d кабинетов", len(ids))
+	default:
+		return labelForTool(toolName)
+	}
+}
+
+func helpText() string {
+	return "Доступные команды:\n" +
+		"/кабинеты [ready|blocked|limited] [поиск] — поиск\n" +
+		"/health [all] — health check\n" +
+		"/пул [название] — создать пул\n" +
+		"/пул добавить [пул] [ready|blocked] — добавить кабинеты\n" +
+		"/статус — обзор workspace\n" +
+		"/лог [N] — последние N действий\n" +
+		"/объясни [кабинет] — анализ readiness\n" +
+		"/открой [страница] — перейти"
 }

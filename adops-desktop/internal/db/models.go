@@ -10,13 +10,14 @@ import (
 // ─── AI Config ───────────────────────────────────────────────────────────────
 
 type AIConfig struct {
-	ID        string    `gorm:"primaryKey;type:text" json:"id"`
-	UserID    string    `gorm:"uniqueIndex;type:text" json:"userId"`
-	Provider  string    `gorm:"type:text;default:'anthropic'" json:"provider"`
-	ApiKey    string    `gorm:"type:text;default:''" json:"apiKey"`
-	Model     string    `gorm:"type:text;default:'claude-haiku-4-5-20251001'" json:"model"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID         string    `gorm:"primaryKey;type:text" json:"id"`
+	UserID     string    `gorm:"uniqueIndex;type:text" json:"userId"`
+	Provider   string    `gorm:"type:text;default:'anthropic'" json:"provider"`
+	ApiKey     string    `gorm:"type:text;default:''" json:"apiKey"`
+	Model      string    `gorm:"type:text;default:''" json:"model"`
+	GroqApiKey string    `gorm:"type:text;default:''" json:"groqApiKey"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 // ─── JSON helper ─────────────────────────────────────────────────────────────

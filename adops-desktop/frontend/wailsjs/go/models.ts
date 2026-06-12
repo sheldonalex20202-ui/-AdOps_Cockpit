@@ -1397,16 +1397,12 @@ export namespace main {
 	}
 
 	export class AIConfigResult {
-	    provider: string;
-	    apiKey: string;
-	    model: string;
+	    groqApiKey: string;
 
 	    static createFrom(source: any = {}) { return new AIConfigResult(source); }
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.provider = source["provider"];
-	        this.apiKey = source["apiKey"];
-	        this.model = source["model"];
+	        this.groqApiKey = source["groqApiKey"] ?? "";
 	    }
 	}
 

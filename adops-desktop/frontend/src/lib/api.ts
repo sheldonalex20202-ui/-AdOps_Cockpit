@@ -201,10 +201,9 @@ export interface ScaleRuleInput {
 
 // ─── AI Operator ──────────────────────────────────────────────────────────────
 
-export const sendAIMessage    = (input: string, convID: string) => Go.SendAIMessage(input, convID);
-export const confirmAIAction  = (actionID: string, convID: string) => Go.ConfirmAIAction(actionID, convID);
-export const cancelAIAction   = (actionID: string) => Go.CancelAIAction(actionID);
+export const sendAIMessage       = (input: string, convID: string) => Go.SendAIMessage(input, convID);
+export const confirmAIAction     = (actionID: string, convID: string) => Go.ConfirmAIAction(actionID, convID);
+export const cancelAIAction      = (actionID: string) => Go.CancelAIAction(actionID);
 export const clearAIConversation = (convID: string) => Go.ClearAIConversation(convID);
-export const getAIConfig      = () => Go.GetAIConfig();
-export const saveAIConfig     = (provider: string, apiKey: string, model: string) =>
-  Go.SaveAIConfig(provider, apiKey, model);
+export const getAIConfig         = () => Go.GetAIConfig();
+export const saveAIConfig        = (groqApiKey: string) => Go.SaveAIConfig(groqApiKey);

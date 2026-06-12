@@ -43,12 +43,7 @@ type SendResult struct {
 	Error         string          `json:"error,omitempty"`
 }
 
-// AIConfig holds LLM provider settings.
+// AIConfig holds LLM settings (Groq is the fallback LLM; commands work without any key).
 type AIConfig struct {
-	Provider string `json:"provider"`
-	ApiKey   string `json:"apiKey"`
-	Model    string `json:"model"`
+	GroqApiKey string `json:"groqApiKey"`
 }
-
-// apiMsg is an Anthropic messages API message (role + content).
-type apiMsg map[string]interface{}
