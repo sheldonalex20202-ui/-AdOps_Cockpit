@@ -74,6 +74,7 @@ func (a *App) startup(ctx context.Context) {
 	a.authFlow = authflow.New()
 	a.aiSvc = ai.New(gdb)
 	a.restoreSession()
+	a.aiSvc.EnsureDefaultKey()
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

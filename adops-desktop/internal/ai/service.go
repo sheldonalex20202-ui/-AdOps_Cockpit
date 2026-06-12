@@ -32,12 +32,34 @@ func New(gdb *gorm.DB) *Service {
 	}
 }
 
+// EnsureDefaultKey persists builtInGroqKey to DB on startup so it survives
+// future builds that might not have the key in ldflags.
+func (s *Service) EnsureDefaultKey() {
+	if builtInGroqKey == "" {
+		return
+	}
+	const sysUser = "__system__"
+	var cfg db.AIConfig
+	if s.gdb.Where("user_id = ?", sysUser).First(&cfg).Error != nil {
+		s.gdb.Create(&db.AIConfig{ID: uuid.NewString(), UserID: sysUser, GroqApiKey: builtInGroqKey})
+	} else if cfg.GroqApiKey != builtInGroqKey {
+		s.gdb.Model(&cfg).Update("groq_api_key", builtInGroqKey)
+	}
+}
+
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 func (s *Service) GetConfig(userID string) AIConfig {
 	var cfg db.AIConfig
 	s.gdb.Where("user_id = ?", userID).First(&cfg)
 	key := cfg.GroqApiKey
+	if key == "" {
+		// Fall back to system-level default (saved by EnsureDefaultKey on startup).
+		var sys db.AIConfig
+		if s.gdb.Where("user_id = ?", "__system__").First(&sys).Error == nil {
+			key = sys.GroqApiKey
+		}
+	}
 	if key == "" {
 		key = builtInGroqKey
 	}
