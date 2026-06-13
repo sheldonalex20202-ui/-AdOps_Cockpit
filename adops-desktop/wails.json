@@ -7,7 +7,14 @@
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "",
+    "name": "AdOps Cockpit",
     "email": ""
+  },
+  "info": {
+    "companyName": "AdOps Cockpit",
+    "productName": "AdOps Cockpit",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2025 AdOps Cockpit",
+    "comments": "Инструмент медиабаера для автозалива Meta Ads"
   }
 }
