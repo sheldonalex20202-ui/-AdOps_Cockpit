@@ -13,7 +13,7 @@ VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 
 ManifestDPIAware true
 
-!include "MUI2.nsh"
+!include "MUI.nsh"
 
 !define MUI_ICON   "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
@@ -29,7 +29,6 @@ ManifestDPIAware true
 
 !insertmacro MUI_UNPAGE_INSTFILES
 
-!insertmacro MUI_LANGUAGE "Russian"
 !insertmacro MUI_LANGUAGE "English"
 
 Name    "${INFO_PRODUCTNAME}"
@@ -37,7 +36,6 @@ OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe"
 InstallDir "$PROGRAMFILES64\AdOps Cockpit"
 InstallDirRegKey HKLM "Software\AdOps Cockpit" "InstallDir"
 ShowInstDetails show
-RequestExecutionLevel admin
 
 Function .onInit
     !insertmacro wails.checkArchitecture
