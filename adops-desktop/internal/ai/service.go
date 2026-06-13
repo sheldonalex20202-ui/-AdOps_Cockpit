@@ -612,6 +612,10 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 		if pendingFound {
 			break
 		}
+		// Navigation is a terminal action — stop the loop so we don't navigate twice.
+		if nav, _ := s.navFrom(allExecs); nav != "" {
+			break
+		}
 	}
 
 	// Phase 2: final call WITHOUT tools so Groq generates a text summary

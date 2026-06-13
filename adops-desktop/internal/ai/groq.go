@@ -156,7 +156,10 @@ func isRateLimitErr(err error) bool {
 		return false
 	}
 	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "rate limit") || strings.Contains(msg, "rate_limit")
+	return strings.Contains(msg, "rate limit") ||
+		strings.Contains(msg, "rate_limit") ||
+		strings.Contains(msg, "quota") ||
+		strings.Contains(msg, "429")
 }
 
 // callGroqChat sends messages + tool schemas to Groq.
@@ -167,7 +170,10 @@ func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef
 		resp, err = callGroqChatModel(apiKey, groqFallbackModel, system, messages, tools)
 	}
 	if err != nil && isRateLimitErr(err) && builtInGeminiKey != "" {
-		return callGeminiChat(builtInGeminiKey, system, messages, tools)
+		resp, err = callGeminiChat(builtInGeminiKey, system, messages, tools)
+	}
+	if err != nil && isRateLimitErr(err) {
+		return nil, fmt.Errorf("все AI провайдеры исчерпали дневной лимит запросов. Попробуйте через несколько минут или завтра.")
 	}
 	return resp, err
 }
