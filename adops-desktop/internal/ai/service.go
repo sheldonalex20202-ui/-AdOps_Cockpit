@@ -416,20 +416,34 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 // ─── System prompt ────────────────────────────────────────────────────────────
 
 func (s *Service) buildGroqSystem(userID string) string {
-	var total, ready, blocked, poolCount int64
+	var total, ready, blocked, poolCount, creatives, templates int64
 	s.gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false", userID).Count(&total)
-	s.gdb.Model(&db.MetaAdAccount{}).
-		Where("user_id = ? AND archived = false AND readiness_status = 'READY'", userID).Count(&ready)
-	s.gdb.Model(&db.MetaAdAccount{}).
-		Where("user_id = ? AND archived = false AND readiness_status = 'BLOCKED'", userID).Count(&blocked)
+	s.gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false AND readiness_status = 'READY'", userID).Count(&ready)
+	s.gdb.Model(&db.MetaAdAccount{}).Where("user_id = ? AND archived = false AND readiness_status = 'BLOCKED'", userID).Count(&blocked)
 	s.gdb.Model(&db.AccountPool{}).Where("user_id = ?", userID).Count(&poolCount)
+	s.gdb.Model(&db.Creative{}).Where("user_id = ?", userID).Count(&creatives)
+	s.gdb.Model(&db.CampaignTemplate{}).Where("user_id = ?", userID).Count(&templates)
 
 	return fmt.Sprintf(
 		"Ты AI Operator в AdOps Cockpit — инструменте медиабаера Facebook.\n"+
-			"Workspace: %d кабинетов (%d READY, %d BLOCKED), %d пулов.\n"+
-			"Всегда используй инструменты для получения реальных данных — не придумывай.\n"+
-			"Отвечай по-русски кратко и конкретно.",
-		total, ready, blocked, poolCount,
+			"Workspace: %d кабинетов (%d READY, %d BLOCKED), %d пулов, %d креативов, %d шаблонов.\n\n"+
+			"Инструменты которые ты можешь вызвать:\n"+
+			"КАБИНЕТЫ: accounts_search, accounts_explain_readiness, accounts_delete (dangerous), accounts_update\n"+
+			"ПУЛЫ: pools_list, pools_create, pools_rename, pools_delete (dangerous), pools_add_accounts, pools_remove_accounts, pools_clear\n"+
+			"КРЕАТИВЫ: creatives_list, creatives_delete (dangerous)\n"+
+			"ШАБЛОНЫ: templates_list, templates_delete (dangerous)\n"+
+			"АВТОЗАЛИВ: launch_jobs_list\n"+
+			"АВТОКОНТРОЛЬ: autocontrol_get, autocontrol_set, autocontrol_run, geo_rules_list, geo_rules_upsert, geo_rules_delete\n"+
+			"АВТОСКЕЙЛ: autoscale_get, autoscale_set, autoscale_run\n"+
+			"ИНТЕГРАЦИИ: connections_list\n"+
+			"ЗДОРОВЬЕ: health_run_bulk\n"+
+			"СБРОС: data_reset (scope: accounts|pools|creatives|templates|launch_jobs|all) — DANGEROUS\n"+
+			"ПРОЧЕЕ: workspace_status, audit_recent, navigation_open_page\n\n"+
+			"Правила:\n"+
+			"- Всегда вызывай нужный инструмент — не отвечай без реальных данных.\n"+
+			"- Для опасных операций (delete/reset) всегда уточни масштаб через инструмент.\n"+
+			"- Отвечай по-русски кратко и конкретно.",
+		total, ready, blocked, poolCount, creatives, templates,
 	)
 }
 
@@ -437,16 +451,53 @@ func (s *Service) buildGroqSystem(userID string) string {
 
 func buildSummary(toolName string, params map[string]interface{}) string {
 	switch toolName {
+	case "accounts_delete":
+		if all, _ := params["all"].(bool); all {
+			return "Удалить ВСЕ рекламные кабинеты"
+		}
+		ids, _ := params["accountIds"].([]interface{})
+		return fmt.Sprintf("Удалить %d кабинетов", len(ids))
 	case "pools_add_accounts":
 		ids, _ := params["accountIds"].([]interface{})
 		poolId, _ := params["poolId"].(string)
 		return fmt.Sprintf("Добавить %d кабинетов в пул %s", len(ids), poolId)
+	case "pools_delete":
+		if name, _ := params["name"].(string); name != "" {
+			return fmt.Sprintf("Удалить пул «%s»", name)
+		}
+		return "Удалить пул"
+	case "pools_clear":
+		return "Очистить все кабинеты из пула"
 	case "health_run_bulk":
 		if all, _ := params["all"].(bool); all {
 			return "Запустить health check для всех кабинетов"
 		}
 		ids, _ := params["accountIds"].([]interface{})
 		return fmt.Sprintf("Запустить health check для %d кабинетов", len(ids))
+	case "creatives_delete":
+		if all, _ := params["all"].(bool); all {
+			return "Удалить ВСЕ креативы"
+		}
+		ids, _ := params["creativeIds"].([]interface{})
+		return fmt.Sprintf("Удалить %d креативов", len(ids))
+	case "templates_delete":
+		if all, _ := params["all"].(bool); all {
+			return "Удалить ВСЕ шаблоны кампаний"
+		}
+		ids, _ := params["templateIds"].([]interface{})
+		return fmt.Sprintf("Удалить %d шаблонов", len(ids))
+	case "data_reset":
+		scope, _ := params["scope"].(string)
+		return fmt.Sprintf("Полный сброс данных: scope=%s (НЕОБРАТИМО)", scope)
+	case "autocontrol_run":
+		return "Запустить цикл Автоконтроля прямо сейчас"
+	case "autoscale_run":
+		return "Запустить цикл Автоскейла прямо сейчас"
+	case "geo_rules_delete":
+		if geo, _ := params["geo"].(string); geo != "" {
+			return fmt.Sprintf("Удалить гео-правило для %s", geo)
+		}
+		return "Удалить гео-правило"
 	default:
 		return labelForTool(toolName)
 	}

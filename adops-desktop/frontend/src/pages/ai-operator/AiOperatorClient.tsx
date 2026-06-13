@@ -88,6 +88,82 @@ function ToolResultView({ exec }: { exec: ToolExecution }) {
         summary = `${t} кабинетов · ${rd} READY · ${na} внимание · ${bl} блок · ${r.poolCount ?? 0} пулов`;
         break;
       }
+      case "accounts_delete":
+        summary = `Удалено ${r.deleted ?? 0} кабинетов`;
+        break;
+      case "accounts_update":
+        summary = "Кабинет обновлён";
+        break;
+      case "pools_list": {
+        const pools = r.pools as Array<{name: string; accountCount: number}> ?? [];
+        summary = pools.length === 0
+          ? "Пулов нет"
+          : pools.map(p => `«${p.name}» (${p.accountCount})`).join(", ");
+        break;
+      }
+      case "pools_rename":
+        summary = "Пул обновлён";
+        break;
+      case "pools_delete":
+        summary = "Пул удалён";
+        break;
+      case "pools_remove_accounts":
+        summary = `Убрано ${r.removed ?? 0} кабинетов из пула`;
+        break;
+      case "pools_clear":
+        summary = `Очищено ${r.cleared ?? 0} кабинетов из пула`;
+        break;
+      case "creatives_list":
+        summary = `Найдено ${r.count ?? 0} креативов`;
+        break;
+      case "creatives_delete":
+        summary = `Удалено ${r.deleted ?? 0} креативов`;
+        break;
+      case "templates_list":
+        summary = `${r.count ?? 0} шаблонов`;
+        break;
+      case "templates_delete":
+        summary = `Удалено ${r.deleted ?? 0} шаблонов`;
+        break;
+      case "launch_jobs_list":
+        summary = `${r.count ?? 0} заданий автозалива`;
+        break;
+      case "autocontrol_get":
+        summary = `Автоконтроль: ${r.enabled ? "включён" : "выключен"} · ${r.intervalMinutes ?? 20} мин`;
+        break;
+      case "autocontrol_set":
+        summary = `Автоконтроль: ${r.enabled ? "включён" : "выключен"} · ${r.intervalMinutes ?? 20} мин`;
+        break;
+      case "autocontrol_run":
+        summary = `Цикл завершён: ${r.paused ?? 0} пауз · ${r.resumed ?? 0} возобновлено · ${r.skipped ?? 0} пропущено`;
+        break;
+      case "geo_rules_list":
+        summary = `${r.count ?? 0} гео-правил`;
+        break;
+      case "geo_rules_upsert":
+        summary = `Правило для ${r.geo ?? ""}: ${r.enabled ? "активно" : "отключено"}`;
+        break;
+      case "geo_rules_delete":
+        summary = `Гео-правило удалено`;
+        break;
+      case "autoscale_get":
+        summary = `Автоскейл: ${r.enabled ? "включён" : "выключен"} · ${r.intervalMinutes ?? 30} мин`;
+        break;
+      case "autoscale_set":
+        summary = `Автоскейл: ${r.enabled ? "включён" : "выключен"} · ${r.intervalMinutes ?? 30} мин`;
+        break;
+      case "autoscale_run":
+        summary = `Цикл завершён: ${r.cloned ?? 0} клонировано · ${r.skipped ?? 0} пропущено`;
+        break;
+      case "connections_list":
+        summary = `${r.count ?? 0} Meta интеграций`;
+        break;
+      case "data_reset": {
+        const del = r.deleted as Record<string, number> ?? {};
+        const parts = Object.entries(del).map(([k, v]) => `${k}: ${v}`);
+        summary = `Удалено — ${parts.join(", ") || "0"}`;
+        break;
+      }
       default:
         summary = JSON.stringify(r).slice(0, 80);
     }
