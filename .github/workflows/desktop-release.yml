@@ -46,8 +46,10 @@ jobs:
         run: |
           $makensis = "C:\Program Files (x86)\NSIS\makensis.exe"
           if (-not (Test-Path $makensis)) { $makensis = (Get-Command makensis).Source }
+          $binary = (Resolve-Path "build\bin\adops-desktop.exe").Path
           Write-Host "Using makensis: $makensis"
-          & $makensis build/windows/installer/project.nsi
+          Write-Host "Binary: $binary"
+          & $makensis "/DARG_WAILS_AMD64_BINARY=$binary" "build\windows\installer\project.nsi"
           if ($LASTEXITCODE -ne 0) { throw "makensis failed with exit code $LASTEXITCODE" }
 
       - name: Rename installer to stable filename
