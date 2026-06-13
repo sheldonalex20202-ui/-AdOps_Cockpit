@@ -81,6 +81,63 @@ type groqChatResp struct {
 	} `json:"error"`
 }
 
+const groqVisionModel = "llama-3.2-11b-vision-preview"
+
+// callGroqVisionAnalyze sends an image data-URL + optional user text to the
+// vision model and returns a text description. Used as a pre-processing step
+// before the main agentic loop.
+func callGroqVisionAnalyze(apiKey, userText, imageDataURL string) (string, error) {
+	if apiKey == "" {
+		return "", fmt.Errorf("groq_key_missing")
+	}
+	prompt := userText
+	if prompt == "" {
+		prompt = "Опиши это изображение подробно: содержание, текст, цвета, элементы дизайна, возможное назначение в рекламе."
+	}
+
+	content := []map[string]interface{}{
+		{"type": "image_url", "image_url": map[string]interface{}{"url": imageDataURL}},
+		{"type": "text", "text": prompt},
+	}
+
+	reqBody := map[string]interface{}{
+		"model": groqVisionModel,
+		"messages": []map[string]interface{}{
+			{"role": "system", "content": "Ты ассистент по анализу рекламных материалов. Описывай изображения детально на русском языке."},
+			{"role": "user", "content": content},
+		},
+		"max_tokens": 1024,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, err := http.NewRequest("POST", groqEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Groq Vision недоступен: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	var result groqChatResp
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("ошибка ответа Groq Vision: %v", err)
+	}
+	if result.Error != nil {
+		return "", fmt.Errorf("Groq Vision: %s", result.Error.Message)
+	}
+	if len(result.Choices) == 0 {
+		return "", fmt.Errorf("пустой ответ от Groq Vision")
+	}
+	return result.Choices[0].Message.Content, nil
+}
+
 // callGroqChat sends messages + tool schemas to Groq and returns the raw response.
 func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
 	if apiKey == "" {

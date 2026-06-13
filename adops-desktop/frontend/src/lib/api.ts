@@ -201,7 +201,9 @@ export interface ScaleRuleInput {
 
 // ─── AI Operator ──────────────────────────────────────────────────────────────
 
-export const sendAIMessage       = (input: string, convID: string) => Go.SendAIMessage(input, convID);
+export const sendAIMessage           = (input: string, convID: string) => Go.SendAIMessage(input, convID);
+export const sendAIMessageWithFile   = (input: string, convID: string, fileDataURL: string, fileName: string) =>
+  Go.SendAIMessageWithFile(input, convID, fileDataURL, fileName);
 export const confirmAIAction     = (actionID: string, convID: string) => Go.ConfirmAIAction(actionID, convID);
 export const cancelAIAction      = (actionID: string) => Go.CancelAIAction(actionID);
 export const clearAIConversation = (convID: string) => Go.ClearAIConversation(convID);

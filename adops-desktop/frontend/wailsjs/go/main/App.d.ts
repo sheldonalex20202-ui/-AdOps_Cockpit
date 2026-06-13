@@ -127,6 +127,7 @@ export function SaveAutoscaleConfig(arg1:boolean,arg2:number):Promise<void>;
 export function UpdateScaleRule(arg1:string,arg2:main.ScaleRuleInput):Promise<db.ScaleRule>;
 
 export function SendAIMessage(arg1:string,arg2:string):Promise<main.AIOperatorResult>;
+export function SendAIMessageWithFile(arg1:string,arg2:string,arg3:string,arg4:string):Promise<main.AIOperatorResult>;
 
 export function ConfirmAIAction(arg1:string,arg2:string):Promise<main.AIOperatorResult>;
 

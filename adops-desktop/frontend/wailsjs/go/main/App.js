@@ -250,6 +250,10 @@ export function SendAIMessage(arg1, arg2) {
   return window['go']['main']['App']['SendAIMessage'](arg1, arg2);
 }
 
+export function SendAIMessageWithFile(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SendAIMessageWithFile'](arg1, arg2, arg3, arg4);
+}
+
 export function ConfirmAIAction(arg1, arg2) {
   return window['go']['main']['App']['ConfirmAIAction'](arg1, arg2);
 }

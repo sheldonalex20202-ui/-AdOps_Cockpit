@@ -79,6 +79,41 @@ func (s *Service) SaveConfig(userID, groqApiKey string) error {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
+// SendMessageWithFile handles a user message that optionally includes an
+// attached file. Images are analyzed with Groq Vision first; the description
+// is prepended to the text before entering the agentic loop.
+func (s *Service) SendMessageWithFile(userID, convID, text, fileDataURL, fileName string) SendResult {
+	if fileDataURL == "" {
+		return s.SendMessage(userID, convID, text)
+	}
+
+	cfg := s.GetConfig(userID)
+	enrichedText := text
+
+	if strings.HasPrefix(fileDataURL, "data:image/") {
+		analysis, err := callGroqVisionAnalyze(cfg.GroqApiKey, text, fileDataURL)
+		if err != nil {
+			// Vision failed — fall back to noting the filename
+			if fileName != "" {
+				enrichedText = fmt.Sprintf("[Прикреплено изображение: %s]\n\n%s", fileName, text)
+			}
+		} else {
+			if text != "" {
+				enrichedText = fmt.Sprintf("[Прикреплено изображение «%s»]\nАнализ: %s\n\nЗапрос пользователя: %s", fileName, analysis, text)
+			} else {
+				enrichedText = fmt.Sprintf("[Изображение «%s»]\n%s", fileName, analysis)
+			}
+		}
+	} else {
+		// Non-image file
+		if fileName != "" {
+			enrichedText = fmt.Sprintf("[Файл: %s]\n\n%s", fileName, text)
+		}
+	}
+
+	return s.SendMessage(userID, convID, enrichedText)
+}
+
 // SendMessage routes the input: slash commands execute instantly, everything
 // else goes through the Groq agentic loop (Groq picks the right tool).
 func (s *Service) SendMessage(userID, convID, input string) SendResult {

@@ -1336,6 +1336,14 @@ func (a *App) SendAIMessage(input, convID string) ai.SendResult {
 	return a.aiSvc.SendMessage(a.currentUserID, convID, input)
 }
 
+func (a *App) SendAIMessageWithFile(input, convID, fileDataURL, fileName string) ai.SendResult {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return ai.SendResult{Error: "not_authenticated"}
+	}
+	return a.aiSvc.SendMessageWithFile(a.currentUserID, convID, input, fileDataURL, fileName)
+}
+
 func (a *App) ConfirmAIAction(actionID, convID string) ai.SendResult {
 	a.waitReady()
 	if a.currentUserID == "" {

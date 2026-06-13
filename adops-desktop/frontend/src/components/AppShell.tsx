@@ -39,15 +39,10 @@ const navGroups: NavGroup[] = [
   },
   {
     items: [
-      { page: "launch-history", label: "История",      Icon: History },
-      { page: "audit-logs",     label: "Аудит",        Icon: FileClock },
-      { page: "integrations",   label: "Настройки",    Icon: Settings },
+      { page: "launch-history", label: "История",       Icon: History },
+      { page: "audit-logs",     label: "Аудит",         Icon: FileClock },
+      { page: "integrations",   label: "Настройки",     Icon: Settings },
       { page: "health-checks",  label: "Health checks", Icon: Activity },
-    ],
-  },
-  {
-    items: [
-      { page: "ai-operator", label: "AI Operator", Icon: Bot, badge: "NEW" },
     ],
   },
 ];
@@ -73,9 +68,11 @@ interface Props {
   user: { name: string; email: string };
   onLogout: () => void;
   version?: string;
+  aiOpen?: boolean;
+  onAiToggle?: () => void;
 }
 
-export function AppShell({ children, currentPage, onNavigate, user, onLogout, version }: Props) {
+export function AppShell({ children, currentPage, onNavigate, user, onLogout, version, aiOpen, onAiToggle }: Props) {
   const [open, setOpen] = useState(false);
   const state = open ? "open" : "closed";
 
@@ -165,6 +162,30 @@ export function AppShell({ children, currentPage, onNavigate, user, onLogout, ve
             </div>
           ))}
         </nav>
+
+        {/* AI Operator toggle */}
+        <div className="shrink-0 border-t border-stroke px-1.5 py-1.5">
+          <button
+            onClick={onAiToggle}
+            title={!open ? "AI Operator" : undefined}
+            className={clsx(
+              "flex w-full items-center gap-2.5 rounded px-2 py-[7px] text-left transition-colors select-none",
+              aiOpen
+                ? "bg-selected text-brand"
+                : "text-muted hover:bg-raised hover:text-ink"
+            )}
+          >
+            <Bot size={15} className={clsx("shrink-0", aiOpen ? "text-brand" : "text-muted")} />
+            <motion.span
+              variants={labelVariants}
+              transition={transition}
+              className="flex flex-1 items-center gap-1.5 text-[13px] font-medium whitespace-nowrap overflow-hidden"
+            >
+              AI Operator
+              <span className="ml-auto rounded-full bg-raised px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted">AI</span>
+            </motion.span>
+          </button>
+        </div>
 
         {/* User footer */}
         <div className="shrink-0 border-t border-stroke px-1.5 py-2">

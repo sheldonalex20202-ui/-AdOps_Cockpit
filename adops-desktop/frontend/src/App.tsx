@@ -17,7 +17,7 @@ import { IntegrationsClient }  from "./pages/integrations/IntegrationsClient";
 import { LaunchHistoryClient } from "./pages/launch-history/LaunchHistoryClient";
 import { AutocontrolClient }   from "./pages/autocontrol/AutocontrolClient";
 import { AutoscaleClient }     from "./pages/autoscale/AutoscaleClient";
-import { AiOperatorClient }    from "./pages/ai-operator/AiOperatorClient";
+import { AiPanel }             from "./components/AiPanel";
 
 type User = { id: string; name: string; email: string };
 type AppState = "loading" | "login" | "app";
@@ -112,7 +112,6 @@ function PageContent({ page }: { page: string }) {
     case "audit-logs":      return <AuditClient />;
     case "integrations":    return <IntegrationsClient />;
     case "launch-history":  return <LaunchHistoryClient />;
-    case "ai-operator":     return <AiOperatorClient />;
     default:                return <LaunchClient />;
   }
 }
@@ -216,6 +215,7 @@ export default function App() {
   const [dlDone, setDlDone] = useState(0);
   const [dlTotal, setDlTotal] = useState(0);
   const [updatePhase, setUpdatePhase] = useState<"downloading" | "installing" | "error">("downloading");
+  const [aiOpen, setAiOpen] = useState(false);
 
   useEffect(() => { void boot(); }, []);
 
@@ -283,9 +283,20 @@ export default function App() {
           onManual={() => api.openReleasePage()}
         />
       )}
-      <AppShell currentPage={page} onNavigate={setPage} user={user!} onLogout={handleLogout} version={version}>
+      <AppShell
+        currentPage={page}
+        onNavigate={setPage}
+        user={user!}
+        onLogout={handleLogout}
+        version={version}
+        aiOpen={aiOpen}
+        onAiToggle={() => setAiOpen(v => !v)}
+      >
         <PageContent page={page} />
       </AppShell>
+
+      {/* AI Panel — floating overlay, always mounted */}
+      <AiPanel open={aiOpen} onClose={() => setAiOpen(v => !v)} />
     </div>
   );
 }
