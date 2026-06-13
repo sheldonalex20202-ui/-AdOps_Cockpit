@@ -298,6 +298,16 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
 
   // ─── File handling ────────────────────────────────────────────────────────
 
+  function onPaste(e: React.ClipboardEvent) {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find(i => i.type.startsWith("image/"));
+    if (imageItem) {
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (file) readFile(file);
+    }
+  }
+
   const readFile = useCallback((file: File) => {
     const isImage = file.type.startsWith("image/");
     const reader = new FileReader();
@@ -424,6 +434,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
             onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={onDrop}
+            onPaste={onPaste}
           >
             {/* Drag overlay */}
             {isDragOver && (
@@ -534,6 +545,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+                  onPaste={onPaste}
                   placeholder="Напиши вопрос или задачу..."
                   disabled={thinking}
                   className="flex-1 bg-transparent text-[13px] text-ink placeholder:text-muted focus:outline-none disabled:opacity-50 py-0.5"
@@ -547,7 +559,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
                 </button>
               </div>
               <p className="mt-1.5 text-center text-[10px] text-muted">
-                Поддерживаются JPG, PNG, WebP · перетащи файл в окно
+                JPG, PNG, WebP · вставить скриншот Ctrl+V · перетащить файл
               </p>
             </div>
 
