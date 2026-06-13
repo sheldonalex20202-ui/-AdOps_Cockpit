@@ -14,6 +14,9 @@ const (
 	groqEndpoint      = "https://api.groq.com/openai/v1/chat/completions"
 	groqModel         = "llama-3.3-70b-versatile"
 	groqFallbackModel = "llama-3.1-8b-instant"
+
+	geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+	geminiModel    = "gemini-2.0-flash"
 )
 
 // ─── Message types (OpenAI-compatible) ───────────────────────────────────────
@@ -134,6 +137,9 @@ func callGroqVisionAnalyze(apiKey, userText, imageDataURL string) (string, error
 	}
 	if result.Error != nil {
 		msg := result.Error.Message
+		if isRateLimitErr(fmt.Errorf(msg)) && builtInGeminiKey != "" {
+			return callGeminiVisionAnalyze(builtInGeminiKey, userText, imageDataURL)
+		}
 		if isRateLimitErr(fmt.Errorf(msg)) {
 			return "", fmt.Errorf("превышен дневной лимит токенов Groq. Попробуйте позже.")
 		}
@@ -154,19 +160,114 @@ func isRateLimitErr(err error) bool {
 }
 
 // callGroqChat sends messages + tool schemas to Groq.
-// On rate-limit it retries with groqFallbackModel automatically.
+// On rate-limit: retries llama-3.1-8b-instant, then falls back to Gemini 2.0 Flash.
 func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
 	resp, err := callGroqChatModel(apiKey, groqModel, system, messages, tools)
 	if err != nil && isRateLimitErr(err) {
 		resp, err = callGroqChatModel(apiKey, groqFallbackModel, system, messages, tools)
-		if err != nil {
-			if isRateLimitErr(err) {
-				return nil, fmt.Errorf("превышен дневной лимит токенов Groq. Попробуйте позже или добавьте свой API ключ в настройках.")
-			}
-			return nil, err
-		}
+	}
+	if err != nil && isRateLimitErr(err) && builtInGeminiKey != "" {
+		return callGeminiChat(builtInGeminiKey, system, messages, tools)
 	}
 	return resp, err
+}
+
+// callGeminiVisionAnalyze sends an image to Gemini 2.0 Flash for analysis.
+func callGeminiVisionAnalyze(apiKey, userText, imageDataURL string) (string, error) {
+	prompt := userText
+	if prompt == "" {
+		prompt = "Опиши это изображение подробно: содержание, текст, цвета, элементы дизайна, возможное назначение в рекламе."
+	}
+	reqMap := map[string]interface{}{
+		"model": geminiModel,
+		"messages": []map[string]interface{}{
+			{"role": "system", "content": "Ты ассистент по анализу рекламных материалов. Описывай изображения детально на русском языке."},
+			{"role": "user", "content": []map[string]interface{}{
+				{"type": "image_url", "image_url": map[string]string{"url": imageDataURL}},
+				{"type": "text", "text": prompt},
+			}},
+		},
+		"max_tokens": 1024,
+	}
+	body, _ := json.Marshal(reqMap)
+	httpReq, err := http.NewRequest("POST", geminiEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("Gemini Vision недоступен: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	var result groqChatResp
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("ошибка ответа Gemini Vision: %v", err)
+	}
+	if result.Error != nil {
+		return "", fmt.Errorf("Gemini Vision: %s", result.Error.Message)
+	}
+	if len(result.Choices) == 0 {
+		return "", fmt.Errorf("пустой ответ от Gemini Vision")
+	}
+	return result.Choices[0].Message.Content, nil
+}
+
+// callGeminiChat calls Gemini 2.0 Flash via its OpenAI-compatible endpoint.
+func callGeminiChat(apiKey, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("gemini_key_missing")
+	}
+
+	full := make([]groqMsg, 0, len(messages)+1)
+	if system != "" {
+		full = append(full, groqMsg{Role: "system", Content: system})
+	}
+	full = append(full, messages...)
+
+	// Gemini does not accept parallel_tool_calls — use a plain map to omit the field
+	reqMap := map[string]interface{}{
+		"model":      geminiModel,
+		"messages":   full,
+		"max_tokens": 1024,
+	}
+	if len(tools) > 0 {
+		reqMap["tools"] = tools
+		reqMap["tool_choice"] = "auto"
+	}
+
+	body, _ := json.Marshal(reqMap)
+	httpReq, err := http.NewRequest("POST", geminiEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("Gemini недоступен: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	var result groqChatResp
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("ошибка ответа Gemini: %v", err)
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf("Gemini: %s", result.Error.Message)
+	}
+	if len(result.Choices) == 0 {
+		return nil, fmt.Errorf("пустой ответ от Gemini")
+	}
+	return &result, nil
 }
 
 func callGroqChatModel(apiKey, model, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {

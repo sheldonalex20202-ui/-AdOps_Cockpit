@@ -16,6 +16,9 @@ import (
 // builtInGroqKey is populated by secrets.go (gitignored).
 var builtInGroqKey = ""
 
+// builtInGeminiKey is populated by secrets.go (gitignored).
+var builtInGeminiKey = ""
+
 // Service orchestrates Groq agentic loops with local tool execution.
 type Service struct {
 	gdb           *gorm.DB
