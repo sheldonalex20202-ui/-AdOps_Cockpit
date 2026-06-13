@@ -205,9 +205,20 @@ func callGeminiVisionAnalyze(apiKey, userText, imageDataURL string) (string, err
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		preview := string(respBody)
+		if len(preview) > 200 {
+			preview = preview[:200]
+		}
+		return "", fmt.Errorf("Gemini Vision HTTP %d: %s", resp.StatusCode, preview)
+	}
 	var result groqChatResp
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return "", fmt.Errorf("ошибка ответа Gemini Vision: %v", err)
+		preview := string(respBody)
+		if len(preview) > 200 {
+			preview = preview[:200]
+		}
+		return "", fmt.Errorf("Gemini Vision: неожиданный формат ответа: %s", preview)
 	}
 	if result.Error != nil {
 		return "", fmt.Errorf("Gemini Vision: %s", result.Error.Message)
@@ -219,7 +230,8 @@ func callGeminiVisionAnalyze(apiKey, userText, imageDataURL string) (string, err
 }
 
 // callGeminiChat calls Gemini 2.0 Flash via its OpenAI-compatible endpoint.
-func callGeminiChat(apiKey, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
+// Tools are intentionally omitted — Gemini is used as a text-only fallback.
+func callGeminiChat(apiKey, system string, messages []groqMsg, _ []groqToolDef) (*groqChatResp, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("gemini_key_missing")
 	}
@@ -230,15 +242,10 @@ func callGeminiChat(apiKey, system string, messages []groqMsg, tools []groqToolD
 	}
 	full = append(full, messages...)
 
-	// Gemini does not accept parallel_tool_calls — use a plain map to omit the field
 	reqMap := map[string]interface{}{
 		"model":      geminiModel,
 		"messages":   full,
 		"max_tokens": 1024,
-	}
-	if len(tools) > 0 {
-		reqMap["tools"] = tools
-		reqMap["tool_choice"] = "auto"
 	}
 
 	body, _ := json.Marshal(reqMap)
@@ -257,9 +264,20 @@ func callGeminiChat(apiKey, system string, messages []groqMsg, tools []groqToolD
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		preview := string(respBody)
+		if len(preview) > 200 {
+			preview = preview[:200]
+		}
+		return nil, fmt.Errorf("Gemini HTTP %d: %s", resp.StatusCode, preview)
+	}
 	var result groqChatResp
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("ошибка ответа Gemini: %v", err)
+		preview := string(respBody)
+		if len(preview) > 200 {
+			preview = preview[:200]
+		}
+		return nil, fmt.Errorf("Gemini: неожиданный формат ответа: %s", preview)
 	}
 	if result.Error != nil {
 		return nil, fmt.Errorf("Gemini: %s", result.Error.Message)
