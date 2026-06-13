@@ -41,7 +41,8 @@ jobs:
       - name: Rename installer to stable filename
         shell: pwsh
         run: |
-          $src = Get-ChildItem "adops-desktop/build/bin/*.exe" | Select-Object -First 1
+          $src = Get-ChildItem "adops-desktop/build/bin/*-installer.exe" | Select-Object -First 1
+          if (-not $src) { throw "NSIS installer not found — NSIS build likely failed" }
           Rename-Item $src.FullName "AdOpsCockpit-windows-installer.exe"
 
       - name: Upload Windows artifact
