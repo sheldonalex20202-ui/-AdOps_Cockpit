@@ -387,10 +387,10 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
   function navigate(page: string, highlight?: string) {
     window.dispatchEvent(new CustomEvent("navigate", { detail: page }));
     if (highlight) {
-      // Slight delay so the page mounts before the highlight fires
+      // Delay so the target page fully mounts before the highlight event fires
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("ai:highlight", { detail: highlight }));
-      }, 350);
+      }, 600);
     }
     onClose();
   }
