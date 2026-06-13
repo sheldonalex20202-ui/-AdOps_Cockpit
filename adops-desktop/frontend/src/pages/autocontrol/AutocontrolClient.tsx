@@ -241,6 +241,7 @@ function GeoRulesSection({
   onUpdate: (id: string, input: GeoRuleInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const hlAddGeoRule = useAiHighlight("add-geo-rule");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_RULE_FORM, geoStr: "", maxCpaStr: "", maxSpendNoConvStr: "", maxUcpcNoConvStr: "", maxSpendHighUcpcStr: "" });
   const [saving, setSaving] = useState(false);
@@ -777,7 +778,6 @@ function CycleHistorySection({ cycles, onLoadDetail }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function AutocontrolClient() {
-  const hlAddGeoRule = useAiHighlight("add-geo-rule");
   const [config, setConfig] = useState<AutocontrolConfig | null>(null);
   const [rules, setRules] = useState<GeoRule[]>([]);
   const [windows, setWindows] = useState<PauseWindow[]>([]);
