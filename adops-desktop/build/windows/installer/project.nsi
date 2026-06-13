@@ -23,14 +23,12 @@ ManifestDPIAware true
 !define MUI_ICON   "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
 
-# Show details on install page; warn on abort; no auto-close so user sees log
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING
 
 # "Launch app" checkbox on the Finish page
-!define MUI_FINISHPAGE_RUN          "$INSTDIR\${PRODUCT_EXECUTABLE}"
-!define MUI_FINISHPAGE_RUN_TEXT     "Запустить AdOps Cockpit"
-!define MUI_FINISHPAGE_SHOWREADME   ""
+!define MUI_FINISHPAGE_RUN      "$INSTDIR\${PRODUCT_EXECUTABLE}"
+!define MUI_FINISHPAGE_RUN_TEXT "Запустить AdOps Cockpit"
 
 # ── Installer pages ───────────────────────────────────────────────────────────
 !insertmacro MUI_PAGE_WELCOME
@@ -41,7 +39,7 @@ ManifestDPIAware true
 # ── Uninstaller pages ─────────────────────────────────────────────────────────
 !insertmacro MUI_UNPAGE_INSTFILES
 
-# ── Languages (Russian first = default) ───────────────────────────────────────
+# ── Languages ─────────────────────────────────────────────────────────────────
 !insertmacro MUI_LANGUAGE "Russian"
 !insertmacro MUI_LANGUAGE "English"
 
@@ -49,24 +47,24 @@ ManifestDPIAware true
 Name    "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe"
 
-# Fixed install dir — avoids CompanyName\ProductName double folder
+# Install to a clean single folder (avoids CompanyName\ProductName nesting)
 InstallDir "$PROGRAMFILES64\AdOps Cockpit"
 
-# KEY FIX: remember where the user installed last time.
-# On silent auto-update (/S) NSIS reads this key and installs to the same path.
+# KEY FIX: remember previous install path so silent auto-updates go to same dir
 InstallDirRegKey HKLM "Software\AdOps Cockpit" "InstallDir"
 
 ShowInstDetails show
 
-# ── .onInit: architecture check + close running instance ─────────────────────
+# ── .onInit ───────────────────────────────────────────────────────────────────
 Function .onInit
     !insertmacro wails.checkArchitecture
 
-    # Close a running instance gracefully before overwriting files
+    # Gracefully close a running instance before overwriting files
     FindWindow $0 "" "AdOps Cockpit"
-    IntCmp $0 0 +2
-        SendMessage $0 16 0 0   ; WM_CLOSE = 16
-    Sleep 800
+    StrCmp $0 "0" no_window
+        SendMessage $0 0x10 0 0   # 0x10 = WM_CLOSE
+        Sleep 1000
+    no_window:
 FunctionEnd
 
 # ── Install section ───────────────────────────────────────────────────────────
