@@ -183,20 +183,23 @@ func (s *Service) ClearConversation(convID string) bool {
 
 // ─── Groq agentic loop ────────────────────────────────────────────────────────
 
+// runGroqLoop sends input to Groq, executes any requested tools locally,
+// then calls Groq a final time WITHOUT tools to get a text summary.
+// This two-phase approach avoids Groq's "failed_generation" error that occurs
+// when the model attempts another tool call after receiving tool results.
 func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 	cfg := s.GetConfig(userID)
 
 	s.mu.Lock()
-	s.conversations[convID] = append(s.conversations[convID], groqMsg{
-		Role: "user", Content: input,
-	})
+	s.conversations[convID] = append(s.conversations[convID], groqMsg{Role: "user", Content: input})
 	s.mu.Unlock()
 
 	system := s.buildGroqSystem(userID)
 	tools := groqToolSchemas()
 	var allExecs []ToolExecution
 
-	for iter := 0; iter < 5; iter++ {
+	// Phase 1: up to 3 rounds of tool selection + execution.
+	for round := 0; round < 3; round++ {
 		s.mu.Lock()
 		history := make([]groqMsg, len(s.conversations[convID]))
 		copy(history, s.conversations[convID])
@@ -206,38 +209,27 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 		if err != nil {
 			return SendResult{Error: err.Error(), ToolsExecuted: allExecs}
 		}
-
 		msg := resp.Choices[0].Message
 
-		// No tool calls → final answer.
+		// No tool calls → Groq gave a direct text answer, we're done.
 		if len(msg.ToolCalls) == 0 {
 			s.mu.Lock()
 			s.conversations[convID] = append(s.conversations[convID], groqMsg{
 				Role: "assistant", Content: msg.Content,
 			})
 			s.mu.Unlock()
-
-			nav := ""
-			for _, e := range allExecs {
-				if e.ToolName == "navigation_open_page" {
-					if r, ok := e.Result.(map[string]interface{}); ok {
-						nav, _ = r["page"].(string)
-					}
-				}
-			}
-			return SendResult{Reply: msg.Content, ToolsExecuted: allExecs, NavigateTo: nav}
+			return SendResult{Reply: msg.Content, ToolsExecuted: allExecs, NavigateTo: s.navFrom(allExecs)}
 		}
 
-		// Append assistant turn (with tool_calls) to history.
+		// Append assistant message (contains tool_calls) to history.
 		s.mu.Lock()
 		s.conversations[convID] = append(s.conversations[convID], groqMsg{
-			Role:      "assistant",
-			Content:   msg.Content,
-			ToolCalls: msg.ToolCalls,
+			Role: "assistant", Content: msg.Content, ToolCalls: msg.ToolCalls,
 		})
 		s.mu.Unlock()
 
-		// Execute each tool call.
+		// Execute each requested tool.
+		pendingFound := false
 		for _, tc := range msg.ToolCalls {
 			toolName := tc.Function.Name
 			var params map[string]interface{}
@@ -254,30 +246,22 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 				continue
 			}
 
-			// Needs confirmation → pause, wait for user.
 			if tool.RequiresConfirmation {
 				actionID := uuid.NewString()
 				pa := &PendingAction{
-					ID:        actionID,
-					ToolUseID: tc.ID,
-					ToolName:  toolName,
-					Input:     params,
+					ID: actionID, ToolUseID: tc.ID,
+					ToolName: toolName, Input: params,
 					Summary:   buildSummary(toolName, params),
-					Risk:      tool.Risk,
-					Label:     labelForTool(toolName),
+					Risk:      tool.Risk, Label: labelForTool(toolName),
 					ExpiresAt: time.Now().Add(5 * time.Minute),
 				}
 				s.mu.Lock()
 				s.pending[actionID] = pa
 				s.mu.Unlock()
-				return SendResult{
-					Reply:         msg.Content,
-					ToolsExecuted: allExecs,
-					PendingAction: pa,
-				}
+				pendingFound = true
+				return SendResult{ToolsExecuted: allExecs, PendingAction: pa}
 			}
 
-			// Execute immediately.
 			result, execErr := tool.Execute(s.gdb, userID, params)
 			exec := ToolExecution{
 				ToolName: toolName, Label: labelForTool(toolName),
@@ -290,21 +274,53 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 			}
 			allExecs = append(allExecs, exec)
 
-			// Feed result back to Groq.
 			resultJSON, _ := json.Marshal(result)
 			if execErr != nil {
 				resultJSON = []byte(fmt.Sprintf(`{"error":"%s"}`, execErr.Error()))
 			}
 			s.mu.Lock()
 			s.conversations[convID] = append(s.conversations[convID], groqMsg{
-				Role: "tool", ToolCallID: tc.ID,
-				Content: string(resultJSON),
+				Role: "tool", ToolCallID: tc.ID, Content: string(resultJSON),
 			})
 			s.mu.Unlock()
 		}
+		if pendingFound {
+			break
+		}
 	}
 
-	return SendResult{Error: "превышено число шагов", ToolsExecuted: allExecs}
+	// Phase 2: final call WITHOUT tools so Groq generates a text summary
+	// instead of trying (and failing) to call another function.
+	s.mu.Lock()
+	history := make([]groqMsg, len(s.conversations[convID]))
+	copy(history, s.conversations[convID])
+	s.mu.Unlock()
+
+	finalResp, err := callGroqChat(cfg.GroqApiKey, system, history, nil)
+	if err != nil {
+		// Still return tool results even if summary call failed.
+		return SendResult{ToolsExecuted: allExecs, NavigateTo: s.navFrom(allExecs)}
+	}
+	finalText := finalResp.Choices[0].Message.Content
+	s.mu.Lock()
+	s.conversations[convID] = append(s.conversations[convID], groqMsg{
+		Role: "assistant", Content: finalText,
+	})
+	s.mu.Unlock()
+
+	return SendResult{Reply: finalText, ToolsExecuted: allExecs, NavigateTo: s.navFrom(allExecs)}
+}
+
+func (s *Service) navFrom(execs []ToolExecution) string {
+	for _, e := range execs {
+		if e.ToolName == "navigation_open_page" {
+			if r, ok := e.Result.(map[string]interface{}); ok {
+				nav, _ := r["page"].(string)
+				return nav
+			}
+		}
+	}
+	return ""
 }
 
 // ─── Slash command executor (fast path) ──────────────────────────────────────
