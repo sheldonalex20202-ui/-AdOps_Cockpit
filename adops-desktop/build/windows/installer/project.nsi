@@ -33,22 +33,29 @@ ManifestDPIAware true
 
 Name    "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe"
-InstallDir "$PROGRAMFILES64\AdOps Cockpit"
-InstallDirRegKey HKLM "Software\AdOps Cockpit" "InstallDir"
+
+# Install to LocalAppData — no admin required, auto-update works without UAC
+InstallDir "$LOCALAPPDATA\AdOps Cockpit"
+InstallDirRegKey HKCU "Software\AdOps Cockpit" "InstallDir"
+
 ShowInstDetails show
+RequestExecutionLevel user
 
 Function .onInit
     !insertmacro wails.checkArchitecture
 FunctionEnd
 
 Section
-    !insertmacro wails.setShellContext
+    # Use current-user context (no admin needed for LocalAppData)
+    SetShellVarContext current
+
     !insertmacro wails.webview2runtime
 
     SetOutPath $INSTDIR
     !insertmacro wails.files
 
-    WriteRegStr HKLM "Software\AdOps Cockpit" "InstallDir" "$INSTDIR"
+    # Save install path so silent auto-updates install to the same location
+    WriteRegStr HKCU "Software\AdOps Cockpit" "InstallDir" "$INSTDIR"
 
     CreateShortcut "$SMPROGRAMS\AdOps Cockpit.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortcut "$DESKTOP\AdOps Cockpit.lnk"    "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -59,7 +66,7 @@ Section
 SectionEnd
 
 Section "uninstall"
-    !insertmacro wails.setShellContext
+    SetShellVarContext current
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}"
     RMDir /r $INSTDIR
@@ -67,7 +74,7 @@ Section "uninstall"
     Delete "$SMPROGRAMS\AdOps Cockpit.lnk"
     Delete "$DESKTOP\AdOps Cockpit.lnk"
 
-    DeleteRegKey HKLM "Software\AdOps Cockpit"
+    DeleteRegKey HKCU "Software\AdOps Cockpit"
 
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols
