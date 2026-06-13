@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bot, CheckCircle, ChevronDown, ChevronUp, FileImage,
-  Loader2, Paperclip, Send, Sparkles, Trash2, X,
+  Bot, CheckCircle, ChevronDown, ChevronUp, Clock, FileImage,
+  History, Loader2, Paperclip, Plus, Send, Sparkles, Trash2, X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 import * as api from "@/lib/api";
+import type { ConvSummary, DisplayMsg } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,16 @@ function fmtSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso);
+  const diffH = (Date.now() - d.getTime()) / 3600000;
+  if (diffH < 1) return "только что";
+  if (diffH < 24) return `${Math.floor(diffH)}ч`;
+  if (diffH < 48) return "вчера";
+  if (diffH < 168) return `${Math.floor(diffH / 24)} дн.`;
+  return d.toLocaleDateString("ru", { day: "numeric", month: "short" });
 }
 
 // ─── Tool result card ─────────────────────────────────────────────────────────
@@ -179,6 +190,15 @@ function MessageBubble({ msg, onConfirm, onCancel }: {
             )}
           </div>
         )}
+        {/* file from history (no dataURL) */}
+        {!msg.file && (msg as any).fileName && (
+          <div className="max-w-[80%] rounded-xl overflow-hidden border border-stroke">
+            <div className="flex items-center gap-2 bg-raised px-3 py-2">
+              <FileImage size={14} className="text-muted" />
+              <span className="text-[12px] text-ink">{(msg as any).fileName}</span>
+            </div>
+          </div>
+        )}
         {msg.text && (
           <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-[13px] text-brand-fg">
             {msg.text}
@@ -256,6 +276,76 @@ function MessageBubble({ msg, onConfirm, onCancel }: {
   return null;
 }
 
+// ─── History list ─────────────────────────────────────────────────────────────
+
+function HistoryView({
+  conversations, loading,
+  onSelect, onDelete, onNewChat,
+}: {
+  conversations: ConvSummary[];
+  loading: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onNewChat: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="shrink-0 px-4 py-3 border-b border-stroke">
+        <button
+          onClick={onNewChat}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-stroke bg-raised px-3 py-2 text-[13px] font-medium text-ink hover:bg-brand/5 hover:border-brand/40 hover:text-brand transition-colors"
+        >
+          <Plus size={14} /> Новый чат
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center h-24">
+            <Loader2 size={16} className="animate-spin text-muted" />
+          </div>
+        ) : conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
+            <Clock size={20} className="text-muted" />
+            <p className="text-[12px] text-muted">История пуста</p>
+          </div>
+        ) : (
+          <div className="py-1">
+            {conversations.map(conv => (
+              <div
+                key={conv.id}
+                className="group relative flex items-start gap-3 px-4 py-3 hover:bg-raised/60 cursor-pointer transition-colors"
+                onClick={() => onSelect(conv.id)}
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/8 mt-0.5">
+                  <Bot size={12} className="text-brand" />
+                </div>
+                <div className="min-w-0 flex-1 pr-6">
+                  <p className="truncate text-[13px] font-medium text-ink leading-tight">{conv.title}</p>
+                  {conv.preview && (
+                    <p className="truncate text-[11px] text-muted mt-0.5 leading-snug">{conv.preview}</p>
+                  )}
+                  <p className="text-[10px] text-subtle mt-1">{fmtDate(conv.updatedAt)} · {conv.msgCount} сообщ.</p>
+                </div>
+                {/* Delete button — shown on hover */}
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
+                  className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 rounded p-1 text-muted hover:text-danger hover:bg-danger/10 transition-all"
+                  title="Удалить"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 const EXAMPLES = [
@@ -271,12 +361,15 @@ interface AiPanelProps {
 }
 
 export function AiPanel({ open, onClose }: AiPanelProps) {
+  const [view, setView]         = useState<"chat" | "history">("chat");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput]       = useState("");
   const [thinking, setThinking] = useState(false);
-  const [convID]                = useState(() => mkid());
+  const [convID, setConvID]     = useState(() => mkid());
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [conversations, setConversations]   = useState<ConvSummary[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
@@ -286,14 +379,65 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
   }, [messages, thinking]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 150);
-  }, [open]);
+    if (open && view === "chat") setTimeout(() => inputRef.current?.focus(), 150);
+  }, [open, view]);
 
   function addMsg(msg: ChatMessage) { setMessages(p => [...p, msg]); }
 
-  function navigate(page: string) {
+  function navigate(page: string, highlight?: string) {
     window.dispatchEvent(new CustomEvent("navigate", { detail: page }));
+    if (highlight) {
+      // Slight delay so the page mounts before the highlight fires
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("ai:highlight", { detail: highlight }));
+      }, 350);
+    }
     onClose();
+  }
+
+  // ─── History ──────────────────────────────────────────────────────────────
+
+  async function openHistory() {
+    setView("history");
+    setHistoryLoading(true);
+    try {
+      const convs = await api.getAIConversations();
+      setConversations(convs ?? []);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function selectConversation(id: string) {
+    const displayMsgs: DisplayMsg[] = await api.loadAIConversation(id) ?? [];
+    const msgs: ChatMessage[] = displayMsgs
+      .filter(d => d.kind !== "pending") // pending are ephemeral
+      .map(d => ({
+        id: d.id,
+        kind: d.kind as MsgKind,
+        text: d.text || undefined,
+        tools: d.tools?.length ? (d.tools as ToolExecution[]) : undefined,
+        error: d.error || undefined,
+        convID: id,
+        // fileName/isImage preserved without dataURL
+        ...(d.fileName ? { file: undefined, fileName: d.fileName, isImage: d.isImage } : {}),
+      }));
+    setConvID(id);
+    setMessages(msgs);
+    setView("chat");
+  }
+
+  async function deleteConversation(id: string) {
+    await api.deleteAIConversation(id);
+    setConversations(p => p.filter(c => c.id !== id));
+    // If currently viewing that conversation, start fresh
+    if (convID === id) startNewChat();
+  }
+
+  function startNewChat() {
+    setConvID(mkid());
+    setMessages([]);
+    setView("chat");
   }
 
   // ─── File handling ────────────────────────────────────────────────────────
@@ -364,7 +508,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
       if (res.reply)                  addMsg({ id: mkid(), kind: "assistant", text: res.reply, convID });
       if (res.pendingAction)          addMsg({ id: mkid(), kind: "pending", pending: res.pendingAction, convID });
       if (res.error)                  addMsg({ id: mkid(), kind: "error", error: res.error, convID });
-      if (res.navigateTo)             navigate(res.navigateTo);
+      if (res.navigateTo)             navigate(res.navigateTo, res.highlightTarget);
     } catch (e) {
       addMsg({ id: mkid(), kind: "error", error: String(e), convID });
     } finally {
@@ -384,7 +528,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
       if (res.toolsExecuted?.length) addMsg({ id: mkid(), kind: "tools", tools: res.toolsExecuted, convID: cID });
       if (res.reply)                  addMsg({ id: mkid(), kind: "assistant", text: res.reply, convID: cID });
       if (res.error)                  addMsg({ id: mkid(), kind: "error", error: res.error, convID: cID });
-      if (res.navigateTo)             navigate(res.navigateTo);
+      if (res.navigateTo)             navigate(res.navigateTo, res.highlightTarget);
     } catch (e) {
       setMessages(p => p.filter(m => m.kind !== "thinking"));
       addMsg({ id: mkid(), kind: "error", error: String(e), convID: cID });
@@ -412,7 +556,7 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            onClick={onClose /* parent toggles */}
+            onClick={onClose}
             className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-brand-fg shadow-lg hover:scale-110 transition-transform"
             title="AI Operator"
           >
@@ -449,13 +593,36 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10">
                   <Bot size={13} className="text-brand" />
                 </div>
-                <span className="text-[13px] font-semibold text-ink">AI Operator</span>
-                <span className="rounded-full bg-raised px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted">Beta</span>
+                <span className="text-[13px] font-semibold text-ink">
+                  {view === "history" ? "История чатов" : "AI Operator"}
+                </span>
+                {view === "chat" && (
+                  <span className="rounded-full bg-raised px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted">Beta</span>
+                )}
               </div>
               <div className="flex items-center gap-1">
-                {messages.length > 0 && (
+                {/* History toggle */}
+                <button
+                  onClick={() => view === "history" ? setView("chat") : openHistory()}
+                  className={`rounded p-1.5 transition-colors ${view === "history" ? "bg-brand/10 text-brand" : "text-muted hover:bg-raised hover:text-ink"}`}
+                  title={view === "history" ? "Назад к чату" : "История чатов"}
+                >
+                  <History size={14} />
+                </button>
+                {/* New chat */}
+                {view === "chat" && (
                   <button
-                    onClick={async () => { await api.clearAIConversation(convID); setMessages([]); }}
+                    onClick={startNewChat}
+                    className="rounded p-1.5 text-muted hover:bg-raised hover:text-ink transition-colors"
+                    title="Новый чат"
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
+                {/* Clear current chat (keeps history) */}
+                {view === "chat" && messages.length > 0 && (
+                  <button
+                    onClick={startNewChat}
                     className="rounded p-1.5 text-muted hover:bg-raised hover:text-ink transition-colors"
                     title="Очистить чат"
                   >
@@ -472,105 +639,118 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto">
-              {messages.length === 0 && !thinking ? (
-                <div className="flex h-full flex-col items-center justify-center gap-4 px-5 py-8">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10">
-                    <Bot size={24} className="text-brand" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[14px] font-semibold text-ink">Как могу помочь?</p>
-                    <p className="mt-1 text-[12px] text-muted">Пиши свободно или прикрепи файл</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 w-full">
-                    {EXAMPLES.map(ex => (
-                      <button key={ex} onClick={() => { setInput(ex); inputRef.current?.focus(); }}
-                        className="rounded-lg border border-stroke bg-raised px-3 py-2 text-left text-[12px] text-muted hover:border-brand/40 hover:bg-brand/5 hover:text-brand transition-colors">
-                        {ex}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3 px-4 py-4">
-                  {messages.map(msg => (
-                    <MessageBubble key={msg.id} msg={msg} onConfirm={handleConfirm} onCancel={handleCancel} />
-                  ))}
-                  {thinking && (
-                    <MessageBubble msg={{ id: "t", kind: "thinking", convID }} onConfirm={handleConfirm} onCancel={handleCancel} />
-                  )}
-                  <div ref={bottomRef} />
-                </div>
-              )}
-            </div>
-
-            {/* File preview bar */}
-            {attachedFile && (
-              <div className="shrink-0 border-t border-stroke px-4 py-2">
-                <div className="flex items-center gap-2 rounded-lg border border-stroke bg-raised px-3 py-2">
-                  {attachedFile.isImage ? (
-                    <img src={attachedFile.dataURL} alt={attachedFile.name}
-                      className="h-10 w-10 rounded object-cover shrink-0 border border-stroke" />
+            {/* Body: chat or history */}
+            {view === "history" ? (
+              <HistoryView
+                conversations={conversations}
+                loading={historyLoading}
+                onSelect={selectConversation}
+                onDelete={deleteConversation}
+                onNewChat={startNewChat}
+              />
+            ) : (
+              <>
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto">
+                  {messages.length === 0 && !thinking ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-4 px-5 py-8">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10">
+                        <Bot size={24} className="text-brand" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[14px] font-semibold text-ink">Как могу помочь?</p>
+                        <p className="mt-1 text-[12px] text-muted">Пиши свободно или прикрепи файл</p>
+                      </div>
+                      <div className="flex flex-col gap-1.5 w-full">
+                        {EXAMPLES.map(ex => (
+                          <button key={ex} onClick={() => { setInput(ex); inputRef.current?.focus(); }}
+                            className="rounded-lg border border-stroke bg-raised px-3 py-2 text-left text-[12px] text-muted hover:border-brand/40 hover:bg-brand/5 hover:text-brand transition-colors">
+                            {ex}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-brand/10">
-                      <FileImage size={16} className="text-brand" />
+                    <div className="space-y-3 px-4 py-4">
+                      {messages.map(msg => (
+                        <MessageBubble key={msg.id} msg={msg} onConfirm={handleConfirm} onCancel={handleCancel} />
+                      ))}
+                      {thinking && (
+                        <MessageBubble msg={{ id: "t", kind: "thinking", convID }} onConfirm={handleConfirm} onCancel={handleCancel} />
+                      )}
+                      <div ref={bottomRef} />
                     </div>
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium text-ink">{attachedFile.name}</p>
-                    <p className="text-[11px] text-muted">{fmtSize(attachedFile.size)} · {attachedFile.isImage ? "Изображение" : "Файл"}</p>
-                  </div>
-                  <button onClick={() => setAttachedFile(null)} className="shrink-0 text-muted hover:text-ink transition-colors">
-                    <X size={14} />
-                  </button>
                 </div>
-              </div>
-            )}
 
-            {/* Input */}
-            <div className={`shrink-0 border-t border-stroke p-3 ${thinking ? "opacity-60" : ""}`}>
-              <div className="flex items-end gap-2 rounded-xl border border-stroke bg-surface px-3 py-2 focus-within:border-brand/50 transition-colors">
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  disabled={thinking}
-                  className="shrink-0 text-muted hover:text-brand transition-colors disabled:opacity-40 mb-0.5"
-                  title="Прикрепить файл (изображение)"
-                >
-                  <Paperclip size={15} />
-                </button>
+                {/* File preview bar */}
+                {attachedFile && (
+                  <div className="shrink-0 border-t border-stroke px-4 py-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-stroke bg-raised px-3 py-2">
+                      {attachedFile.isImage ? (
+                        <img src={attachedFile.dataURL} alt={attachedFile.name}
+                          className="h-10 w-10 rounded object-cover shrink-0 border border-stroke" />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-brand/10">
+                          <FileImage size={16} className="text-brand" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-medium text-ink">{attachedFile.name}</p>
+                        <p className="text-[11px] text-muted">{fmtSize(attachedFile.size)} · {attachedFile.isImage ? "Изображение" : "Файл"}</p>
+                      </div>
+                      <button onClick={() => setAttachedFile(null)} className="shrink-0 text-muted hover:text-ink transition-colors">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Input */}
+                <div className={`shrink-0 border-t border-stroke p-3 ${thinking ? "opacity-60" : ""}`}>
+                  <div className="flex items-end gap-2 rounded-xl border border-stroke bg-surface px-3 py-2 focus-within:border-brand/50 transition-colors">
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={thinking}
+                      className="shrink-0 text-muted hover:text-brand transition-colors disabled:opacity-40 mb-0.5"
+                      title="Прикрепить файл (изображение)"
+                    >
+                      <Paperclip size={15} />
+                    </button>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+                      onPaste={onPaste}
+                      placeholder="Напиши вопрос или задачу..."
+                      disabled={thinking}
+                      className="flex-1 bg-transparent text-[13px] text-ink placeholder:text-muted focus:outline-none disabled:opacity-50 py-0.5"
+                    />
+                    <button
+                      onClick={() => void send()}
+                      disabled={thinking || (!input.trim() && !attachedFile)}
+                      className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-brand-fg hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity mb-0.5"
+                    >
+                      {thinking ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-center text-[10px] text-muted">
+                    JPG, PNG, WebP · вставить скриншот Ctrl+V · перетащить файл
+                  </p>
+                </div>
+
+                {/* Hidden file input */}
                 <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-                  onPaste={onPaste}
-                  placeholder="Напиши вопрос или задачу..."
-                  disabled={thinking}
-                  className="flex-1 bg-transparent text-[13px] text-ink placeholder:text-muted focus:outline-none disabled:opacity-50 py-0.5"
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*,application/json,text/csv,text/plain"
+                  className="hidden"
+                  onChange={onFileInputChange}
                 />
-                <button
-                  onClick={() => void send()}
-                  disabled={thinking || (!input.trim() && !attachedFile)}
-                  className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-brand-fg hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity mb-0.5"
-                >
-                  {thinking ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                </button>
-              </div>
-              <p className="mt-1.5 text-center text-[10px] text-muted">
-                JPG, PNG, WebP · вставить скриншот Ctrl+V · перетащить файл
-              </p>
-            </div>
-
-            {/* Hidden file input */}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,application/json,text/csv,text/plain"
-              className="hidden"
-              onChange={onFileInputChange}
-            />
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

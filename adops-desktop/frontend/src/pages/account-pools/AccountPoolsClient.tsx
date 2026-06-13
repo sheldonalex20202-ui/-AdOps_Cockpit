@@ -2,10 +2,12 @@ import { Layers3, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button, Card, Empty, Input, PageHeader } from "@/components/ui";
 import * as api from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 
 type Pool = { id: string; name: string; description?: string; color: string; items?: { id: string }[] };
 
 export function AccountPoolsClient() {
+  const hlAddPool = useAiHighlight("add-pool");
   const [pools, setPools] = useState<Pool[]>([]);
   const [form, setForm] = useState({ name: "", description: "", color: "#3b82f6" });
 
@@ -53,7 +55,7 @@ export function AccountPoolsClient() {
             className="h-8 w-9 cursor-pointer rounded border border-stroke bg-card p-0.5"
             title="Цвет пула"
           />
-          <Button onClick={createPool} disabled={!form.name}>
+          <Button onClick={createPool} disabled={!form.name} className={hlAddPool ? "ai-highlight" : ""}>
             <Plus size={13} /> Создать
           </Button>
         </div>

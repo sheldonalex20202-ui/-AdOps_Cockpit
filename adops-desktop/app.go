@@ -1378,6 +1378,31 @@ func (a *App) SaveAIConfig(groqApiKey string) error {
 	return a.aiSvc.SaveConfig(a.currentUserID, groqApiKey)
 }
 
+func (a *App) GetAIConversations() []ai.ConvSummary {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return nil
+	}
+	return a.aiSvc.GetConversations(a.currentUserID)
+}
+
+func (a *App) LoadAIConversation(convID string) []ai.DisplayMsg {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return nil
+	}
+	msgs, _ := a.aiSvc.LoadConversation(a.currentUserID, convID)
+	return msgs
+}
+
+func (a *App) DeleteAIConversation(convID string) bool {
+	a.waitReady()
+	if a.currentUserID == "" {
+		return false
+	}
+	return a.aiSvc.DeleteAIConversation(a.currentUserID, convID) == nil
+}
+
 // ─── Session ─────────────────────────────────────────────────────────────────
 
 func (a *App) restoreSession() {

@@ -1293,21 +1293,35 @@ DANGEROUS — cannot be undone.`,
 // ─── navigation_open_page ────────────────────────────────────────────────────
 
 var toolNavigationOpenPage = &Tool{
-	Name:        "navigation_open_page",
-	Description: "Navigate to a specific page in the app after completing a task.",
-	Risk:        RiskRead,
+	Name: "navigation_open_page",
+	Description: "Navigate the user to the correct page. " +
+		"Use 'accounts' when user wants to add/view/manage ad accounts (рекламные кабинеты). " +
+		"Use 'account-pools' to create/manage pools (группы кабинетов). " +
+		"Use 'launch' to create and run ad campaigns (запуск рекламы, автозалив). " +
+		"Use 'creatives' to manage ad creatives/banners (баннеры, картинки, видео). " +
+		"Use 'autocontrol' for auto-pause/resume rules (автоконтроль, CPA, пауза). " +
+		"Use 'autoscale' for auto-scaling rules (автоскейл, масштабирование). " +
+		"Use 'health-checks' to check account health (health check, проверка). " +
+		"Use 'audit-logs' for action history (история, аудит). " +
+		"Use 'integrations' for Meta API connections (Meta API, подключение, интеграция).",
+	Risk: RiskRead,
 	Schema: map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"page": map[string]interface{}{
+				"type": "string",
+				"description": "accounts | account-pools | launch | creatives | autocontrol | autoscale | health-checks | audit-logs | integrations",
+			},
+			"highlight": map[string]interface{}{
 				"type":        "string",
-				"description": "launch | autocontrol | autoscale | accounts | account-pools | creatives | audit-logs | integrations | health-checks",
+				"description": "Optional UI element to highlight for user. Values: add-account | add-pool | add-creative | run-launch | run-health | add-integration | add-geo-rule | add-scale-rule",
 			},
 		},
 		"required": []string{"page"},
 	},
 	Execute: func(gdb *gorm.DB, userID string, input map[string]interface{}) (interface{}, error) {
 		page, _ := input["page"].(string)
+		highlight, _ := input["highlight"].(string)
 		allowed := map[string]string{
 			"launch":        "Автозалив",
 			"autocontrol":   "Автоконтроль",
@@ -1318,10 +1332,9 @@ var toolNavigationOpenPage = &Tool{
 			"audit-logs":    "Аудит",
 			"integrations":  "Настройки",
 			"health-checks": "Health Checks",
-			"ai-operator":   "AI Operator",
 		}
 		if label, ok := allowed[page]; ok {
-			return map[string]interface{}{"page": page, "label": label, "navigate": true}, nil
+			return map[string]interface{}{"page": page, "label": label, "highlight": highlight, "navigate": true}, nil
 		}
 		return nil, fmt.Errorf("unknown page: %s", page)
 	},

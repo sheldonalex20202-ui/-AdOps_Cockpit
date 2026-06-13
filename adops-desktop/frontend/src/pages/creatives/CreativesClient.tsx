@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, Empty, Input, Select } from "@/components/ui";
 import { parseCreativeFilename } from "@/lib/launch-engine";
 import * as api from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 import { ANGLE_LABELS, type CreativeAngle } from "@/lib/presets";
 
 type Creative = {
@@ -25,6 +26,7 @@ const CTA_OPTIONS = [
 ];
 
 export function CreativesClient() {
+  const hlAddCreative = useAiHighlight("add-creative");
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -169,7 +171,7 @@ export function CreativesClient() {
           <Button variant="ghost" onClick={() => fileRef.current?.click()}>
             <Upload size={13} /> Bulk import
           </Button>
-          <Button onClick={() => setShowForm((v) => !v)}><Plus size={13} /> Добавить</Button>
+          <Button onClick={() => setShowForm((v) => !v)} className={hlAddCreative ? "ai-highlight" : ""}><Plus size={13} /> Добавить</Button>
         </div>
       </div>
 

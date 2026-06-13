@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button, Card, Empty, Input, Table } from "@/components/ui";
 import * as api from "@/lib/api";
 import type { ScaleRuleInput } from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 
 // ─── Local types ──────────────────────────────────────────────────────────────
 
@@ -306,7 +307,7 @@ function ScaleRulesSection({
           <div className="text-[13px] font-bold text-ink">Правила скейла</div>
           <div className="text-[11px] text-muted">Пороги победителей и количество клонов для каждого правила</div>
         </div>
-        <Button variant="ghost" onClick={() => setShowForm((v) => !v)}>
+        <Button variant="ghost" onClick={() => setShowForm((v) => !v)} className={hlAddScaleRule ? "ai-highlight" : ""}>
           <Plus size={13} /> Добавить правило
         </Button>
       </div>
@@ -742,6 +743,7 @@ function CycleHistorySection({ cycles, onLoadDetail }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function AutoscaleClient() {
+  const hlAddScaleRule = useAiHighlight("add-scale-rule");
   const [config, setConfig] = useState<AutoscaleConfig | null>(null);
   const [rules, setRules] = useState<ScaleRule[]>([]);
   const [cycles, setCycles] = useState<Cycle[]>([]);

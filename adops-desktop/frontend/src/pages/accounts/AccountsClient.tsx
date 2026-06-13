@@ -7,6 +7,7 @@ import {
 import { money } from "@/lib/format";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 
 type Pool = { id: string; name: string; color: string };
 type Account = {
@@ -19,6 +20,7 @@ type Account = {
 };
 
 export function AccountsClient() {
+  const hlAddAccount = useAiHighlight("add-account");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [pools, setPools] = useState<Pool[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -114,7 +116,7 @@ export function AccountsClient() {
             >
               <Upload size={13} /> {importing ? "Импорт..." : "Mock import"}
             </Button>
-            <Button size="sm" onClick={() => setAdding((v) => !v)}>
+            <Button size="sm" onClick={() => setAdding((v) => !v)} className={hlAddAccount ? "ai-highlight" : ""}>
               <Plus size={13} /> Добавить
             </Button>
           </>

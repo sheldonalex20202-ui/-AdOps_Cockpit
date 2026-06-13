@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Empty, Input, Select, Table, statusTone } from "@/components/ui";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 import {
   VERTICAL_PRESETS, NAMING_PRESETS, ANGLE_LABELS,
   type Vertical, type CreativeAngle,
@@ -173,6 +174,7 @@ function StatCard({ value, label, tone = "default", delay = 0 }: {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function LaunchClient() {
+  const hlRunLaunch = useAiHighlight("run-launch");
   const [step, setStep] = useState(1);
   const [stepDir, setStepDir] = useState<"forward" | "back">("forward");
   const [result, setResult] = useState<JobResult | null>(null);
@@ -1079,7 +1081,7 @@ export function LaunchClient() {
           <div className="flex items-center justify-between">
             <Button variant="ghost" onClick={() => goTo(3)}><ChevronLeft size={14} /> Назад</Button>
             <Button disabled={!jobName || launching} onClick={launch}
-              className="gap-2 bg-success px-6 py-2 text-[13px] font-bold text-white hover:bg-success/90">
+              className={`gap-2 bg-success px-6 py-2 text-[13px] font-bold text-white hover:bg-success/90${hlRunLaunch ? " ai-highlight" : ""}`}>
               {launching ? (
                 <><Loader2 size={15} className="animate-spin" /> Заливаем {selectedAccountIds.length} кабинетов...</>
               ) : (

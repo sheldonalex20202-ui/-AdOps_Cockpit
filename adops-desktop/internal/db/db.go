@@ -60,6 +60,7 @@ func migrate(db *gorm.DB) error {
 		&AutoscaleCycle{},
 		&AutoscaleCycleItem{},
 		&AIConfig{},
+		&AIConversation{},
 	)
 }
 

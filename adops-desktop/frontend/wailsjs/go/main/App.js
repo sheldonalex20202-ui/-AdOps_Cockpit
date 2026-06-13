@@ -273,3 +273,15 @@ export function GetAIConfig() {
 export function SaveAIConfig(arg1) {
   return window['go']['main']['App']['SaveAIConfig'](arg1);
 }
+
+export function GetAIConversations() {
+  return window['go']['main']['App']['GetAIConversations']();
+}
+
+export function LoadAIConversation(arg1) {
+  return window['go']['main']['App']['LoadAIConversation'](arg1);
+}
+
+export function DeleteAIConversation(arg1) {
+  return window['go']['main']['App']['DeleteAIConversation'](arg1);
+}

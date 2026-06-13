@@ -138,3 +138,9 @@ export function ClearAIConversation(arg1:string):Promise<boolean>;
 export function GetAIConfig():Promise<main.AIConfigResult>;
 
 export function SaveAIConfig(arg1:string):Promise<void>;
+
+export function GetAIConversations():Promise<Array<any>>;
+
+export function LoadAIConversation(arg1:string):Promise<Array<any>>;
+
+export function DeleteAIConversation(arg1:string):Promise<boolean>;

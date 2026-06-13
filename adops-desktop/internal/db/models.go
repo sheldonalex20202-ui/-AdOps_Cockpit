@@ -20,6 +20,19 @@ type AIConfig struct {
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
+// AIConversation stores a persisted AI chat session (groq context + display messages).
+type AIConversation struct {
+	ID          string    `gorm:"primaryKey;type:text" json:"id"`
+	UserID      string    `gorm:"index;type:text" json:"userId"`
+	Title       string    `gorm:"type:text" json:"title"`
+	Preview     string    `gorm:"type:text" json:"preview"`
+	MsgCount    int       `gorm:"default:0" json:"msgCount"`
+	HistoryJSON string    `gorm:"type:text" json:"-"` // groqMsg[] for API context
+	DisplayJSON string    `gorm:"type:text" json:"-"` // DisplayMsg[] for UI
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
 // ─── JSON helper ─────────────────────────────────────────────────────────────
 
 type JSON map[string]interface{}

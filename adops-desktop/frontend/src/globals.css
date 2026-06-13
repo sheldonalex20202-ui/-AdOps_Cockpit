@@ -121,6 +121,20 @@ button, input, select, textarea { font: inherit; }
 .animate-count-pop        { animation: countPop 320ms cubic-bezier(.34,1.56,.64,1) both; }
 .animate-spin             { animation: spin 0.8s linear infinite; }
 
+/* ── AI highlight pulse ───────────────────────────────────────── */
+@keyframes ai-glow {
+  0%   { box-shadow: 0 0 0 0   rgba(22,163,74,0);   outline-color: rgba(22,163,74,0); }
+  20%  { box-shadow: 0 0 0 4px rgba(22,163,74,0.5); outline-color: rgba(22,163,74,1); }
+  60%  { box-shadow: 0 0 0 4px rgba(22,163,74,0.3); outline-color: rgba(22,163,74,0.8); }
+  100% { box-shadow: 0 0 0 0   rgba(22,163,74,0);   outline-color: rgba(22,163,74,0); }
+}
+.ai-highlight {
+  outline: 2px solid rgba(22,163,74,0.8);
+  outline-offset: 2px;
+  animation: ai-glow 0.75s ease-in-out 3;
+  border-radius: 6px;
+}
+
 /* ── Update banner ────────────────────────────────────────────── */
 .shimmer-bar::after {
   content: "";

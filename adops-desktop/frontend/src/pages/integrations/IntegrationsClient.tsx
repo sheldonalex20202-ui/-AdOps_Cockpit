@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { Badge, Button, Card, PageHeader, statusTone } from "@/components/ui";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 
 export function IntegrationsClient() {
+  const hlAddIntegration = useAiHighlight("add-integration");
   const [message, setMessage] = useState("");
 
   async function mockImport() {
@@ -40,7 +42,7 @@ export function IntegrationsClient() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={mockImport}>
+          <Button size="sm" onClick={mockImport} className={hlAddIntegration ? "ai-highlight" : ""}>
             <Zap size={12} /> Загрузить 30 mock кабинетов
           </Button>
           {message && (

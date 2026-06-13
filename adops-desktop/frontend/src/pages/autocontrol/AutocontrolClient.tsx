@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button, Card, Empty, Input, Table } from "@/components/ui";
 import * as api from "@/lib/api";
 import type { GeoRuleInput, PauseWindowInput } from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -301,7 +302,7 @@ function GeoRulesSection({
           <div className="text-[13px] font-bold text-ink">GEO правила</div>
           <div className="text-[11px] text-muted">Пороговые значения CPA и расходов для каждого ГЕО</div>
         </div>
-        <Button variant="ghost" onClick={() => setShowForm((v) => !v)}>
+        <Button variant="ghost" onClick={() => setShowForm((v) => !v)} className={hlAddGeoRule ? "ai-highlight" : ""}>
           <Plus size={13} /> Добавить GEO
         </Button>
       </div>
@@ -776,6 +777,7 @@ function CycleHistorySection({ cycles, onLoadDetail }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function AutocontrolClient() {
+  const hlAddGeoRule = useAiHighlight("add-geo-rule");
   const [config, setConfig] = useState<AutocontrolConfig | null>(null);
   const [rules, setRules] = useState<GeoRule[]>([]);
   const [windows, setWindows] = useState<PauseWindow[]>([]);

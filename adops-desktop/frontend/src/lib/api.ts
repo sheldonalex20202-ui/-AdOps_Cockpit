@@ -209,3 +209,34 @@ export const cancelAIAction      = (actionID: string) => Go.CancelAIAction(actio
 export const clearAIConversation = (convID: string) => Go.ClearAIConversation(convID);
 export const getAIConfig         = () => Go.GetAIConfig();
 export const saveAIConfig        = (groqApiKey: string) => Go.SaveAIConfig(groqApiKey);
+
+export const getAIConversations      = (): Promise<ConvSummary[]>  => Go.GetAIConversations();
+export const loadAIConversation      = (id: string): Promise<DisplayMsg[]> => Go.LoadAIConversation(id);
+export const deleteAIConversation    = (id: string): Promise<boolean>      => Go.DeleteAIConversation(id);
+
+export interface ConvSummary {
+  id: string;
+  title: string;
+  preview: string;
+  msgCount: number;
+  updatedAt: string;
+}
+
+export interface DisplayMsg {
+  id: string;
+  kind: "user" | "assistant" | "tools" | "error";
+  text?: string;
+  tools?: ToolExecution[];
+  error?: string;
+  fileName?: string;
+  isImage?: boolean;
+}
+
+export interface ToolExecution {
+  toolName: string;
+  label: string;
+  risk: "read" | "prepare" | "write" | "dangerous";
+  params?: Record<string, unknown>;
+  result?: unknown;
+  error?: string;
+}

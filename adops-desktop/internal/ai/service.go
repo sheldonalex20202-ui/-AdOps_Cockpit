@@ -21,6 +21,7 @@ type Service struct {
 	gdb           *gorm.DB
 	mu            sync.Mutex
 	conversations map[string][]groqMsg
+	displayMsgs   map[string][]DisplayMsg
 	pending       map[string]*PendingAction
 }
 
@@ -28,6 +29,7 @@ func New(gdb *gorm.DB) *Service {
 	return &Service{
 		gdb:           gdb,
 		conversations: make(map[string][]groqMsg),
+		displayMsgs:   make(map[string][]DisplayMsg),
 		pending:       make(map[string]*PendingAction),
 	}
 }
@@ -89,11 +91,11 @@ func (s *Service) SendMessageWithFile(userID, convID, text, fileDataURL, fileNam
 
 	cfg := s.GetConfig(userID)
 	enrichedText := text
+	isImage := strings.HasPrefix(fileDataURL, "data:image/")
 
-	if strings.HasPrefix(fileDataURL, "data:image/") {
+	if isImage {
 		analysis, err := callGroqVisionAnalyze(cfg.GroqApiKey, text, fileDataURL)
 		if err != nil {
-			// Vision failed — fall back to noting the filename
 			if fileName != "" {
 				enrichedText = fmt.Sprintf("[Прикреплено изображение: %s]\n\n%s", fileName, text)
 			}
@@ -105,13 +107,30 @@ func (s *Service) SendMessageWithFile(userID, convID, text, fileDataURL, fileNam
 			}
 		}
 	} else {
-		// Non-image file
 		if fileName != "" {
 			enrichedText = fmt.Sprintf("[Файл: %s]\n\n%s", fileName, text)
 		}
 	}
 
-	return s.SendMessage(userID, convID, enrichedText)
+	result := s.runGroqLoop(userID, convID, enrichedText)
+
+	// Build display messages — user bubble shows original text + file info, not enriched text.
+	dm := []DisplayMsg{{ID: uuid.NewString(), Kind: "user", Text: text, FileName: fileName, IsImage: isImage}}
+	if len(result.ToolsExecuted) > 0 {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "tools", Tools: result.ToolsExecuted})
+	}
+	if result.Reply != "" {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "assistant", Text: result.Reply})
+	}
+	if result.Error != "" {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "error", Error: result.Error})
+	}
+	s.mu.Lock()
+	s.displayMsgs[convID] = append(s.displayMsgs[convID], dm...)
+	s.mu.Unlock()
+	go s.persistConversation(userID, convID)
+
+	return result
 }
 
 // SendMessage routes the input: slash commands execute instantly, everything
@@ -130,8 +149,24 @@ func (s *Service) SendMessage(userID, convID, input string) SendResult {
 		}
 	}
 
-	// All natural language → Groq agentic loop.
-	return s.runGroqLoop(userID, convID, input)
+	result := s.runGroqLoop(userID, convID, input)
+
+	dm := []DisplayMsg{{ID: uuid.NewString(), Kind: "user", Text: input}}
+	if len(result.ToolsExecuted) > 0 {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "tools", Tools: result.ToolsExecuted})
+	}
+	if result.Reply != "" {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "assistant", Text: result.Reply})
+	}
+	if result.Error != "" {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "error", Error: result.Error})
+	}
+	s.mu.Lock()
+	s.displayMsgs[convID] = append(s.displayMsgs[convID], dm...)
+	s.mu.Unlock()
+	go s.persistConversation(userID, convID)
+
+	return result
 }
 
 // ConfirmAction executes a pending tool call and resumes the Groq loop.
@@ -196,6 +231,17 @@ func (s *Service) ConfirmAction(userID, convID, actionID string) SendResult {
 	})
 	s.mu.Unlock()
 
+	// Track confirmed action in display history.
+	var dm []DisplayMsg
+	dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "tools", Tools: []ToolExecution{exec}})
+	if finalContent != "" {
+		dm = append(dm, DisplayMsg{ID: uuid.NewString(), Kind: "assistant", Text: finalContent})
+	}
+	s.mu.Lock()
+	s.displayMsgs[convID] = append(s.displayMsgs[convID], dm...)
+	s.mu.Unlock()
+	go s.persistConversation(userID, convID)
+
 	return SendResult{Reply: finalContent, ToolsExecuted: []ToolExecution{exec}}
 }
 
@@ -208,12 +254,129 @@ func (s *Service) CancelAction(actionID string) bool {
 	return ok
 }
 
-// ClearConversation removes conversation history for a session.
+// ClearConversation removes in-memory history (DB record is kept for history).
 func (s *Service) ClearConversation(convID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.conversations, convID)
+	delete(s.displayMsgs, convID)
 	return true
+}
+
+// ─── Chat history persistence ─────────────────────────────────────────────────
+
+func truncRunes(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n]) + "…"
+}
+
+// persistConversation saves the current groq context + display messages to DB.
+// Always called in a goroutine to avoid blocking the response path.
+func (s *Service) persistConversation(userID, convID string) {
+	s.mu.Lock()
+	hist := make([]groqMsg, len(s.conversations[convID]))
+	copy(hist, s.conversations[convID])
+	disp := make([]DisplayMsg, len(s.displayMsgs[convID]))
+	copy(disp, s.displayMsgs[convID])
+	s.mu.Unlock()
+
+	if len(hist) == 0 || len(disp) == 0 {
+		return
+	}
+
+	title := "Новый чат"
+	for _, m := range hist {
+		if m.Role == "user" && m.Content != "" {
+			title = truncRunes(m.Content, 45)
+			break
+		}
+	}
+
+	preview := ""
+	for i := len(hist) - 1; i >= 0; i-- {
+		if hist[i].Role == "assistant" && hist[i].Content != "" {
+			preview = truncRunes(hist[i].Content, 60)
+			break
+		}
+	}
+
+	userMsgs := 0
+	for _, m := range hist {
+		if m.Role == "user" {
+			userMsgs++
+		}
+	}
+
+	histJSON, _ := json.Marshal(hist)
+	dispJSON, _ := json.Marshal(disp)
+	now := time.Now()
+
+	var existing db.AIConversation
+	if s.gdb.Where("id = ? AND user_id = ?", convID, userID).First(&existing).Error != nil {
+		s.gdb.Create(&db.AIConversation{
+			ID: convID, UserID: userID,
+			Title: title, Preview: preview, MsgCount: userMsgs,
+			HistoryJSON: string(histJSON), DisplayJSON: string(dispJSON),
+			CreatedAt: now, UpdatedAt: now,
+		})
+	} else {
+		s.gdb.Model(&existing).Updates(map[string]interface{}{
+			"title": title, "preview": preview, "msg_count": userMsgs,
+			"history_json": string(histJSON), "display_json": string(dispJSON),
+			"updated_at": now,
+		})
+	}
+}
+
+// GetConversations returns the last 50 conversations for a user, newest first.
+func (s *Service) GetConversations(userID string) []ConvSummary {
+	var convs []db.AIConversation
+	s.gdb.Where("user_id = ?", userID).Order("updated_at desc").Limit(50).Find(&convs)
+	out := make([]ConvSummary, 0, len(convs))
+	for _, c := range convs {
+		out = append(out, ConvSummary{
+			ID: c.ID, Title: c.Title, Preview: c.Preview,
+			MsgCount: c.MsgCount, UpdatedAt: c.UpdatedAt,
+		})
+	}
+	return out
+}
+
+// LoadConversation restores a past conversation into memory and returns display messages.
+func (s *Service) LoadConversation(userID, convID string) ([]DisplayMsg, error) {
+	var conv db.AIConversation
+	if err := s.gdb.Where("id = ? AND user_id = ?", convID, userID).First(&conv).Error; err != nil {
+		return nil, err
+	}
+	if conv.HistoryJSON != "" {
+		var hist []groqMsg
+		if json.Unmarshal([]byte(conv.HistoryJSON), &hist) == nil {
+			s.mu.Lock()
+			s.conversations[convID] = hist
+			s.mu.Unlock()
+		}
+	}
+	var disp []DisplayMsg
+	if conv.DisplayJSON != "" {
+		if json.Unmarshal([]byte(conv.DisplayJSON), &disp) == nil {
+			s.mu.Lock()
+			s.displayMsgs[convID] = disp
+			s.mu.Unlock()
+		}
+	}
+	return disp, nil
+}
+
+// DeleteAIConversation removes a conversation from memory and DB.
+func (s *Service) DeleteAIConversation(userID, convID string) error {
+	s.mu.Lock()
+	delete(s.conversations, convID)
+	delete(s.displayMsgs, convID)
+	s.mu.Unlock()
+	return s.gdb.Where("id = ? AND user_id = ?", convID, userID).Delete(&db.AIConversation{}).Error
 }
 
 // ─── Semantic tool routing ────────────────────────────────────────────────────
@@ -376,7 +539,8 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 				Role: "assistant", Content: msg.Content,
 			})
 			s.mu.Unlock()
-			return SendResult{Reply: msg.Content, ToolsExecuted: allExecs, NavigateTo: s.navFrom(allExecs)}
+			nav, hl := s.navFrom(allExecs)
+			return SendResult{Reply: msg.Content, ToolsExecuted: allExecs, NavigateTo: nav, HighlightTarget: hl}
 		}
 
 		// Append assistant message (contains tool_calls) to history.
@@ -455,9 +619,9 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 	s.mu.Unlock()
 
 	finalResp, err := callGroqChat(cfg.GroqApiKey, system, history, nil)
+	nav, hl := s.navFrom(allExecs)
 	if err != nil {
-		// Still return tool results even if summary call failed.
-		return SendResult{ToolsExecuted: allExecs, NavigateTo: s.navFrom(allExecs)}
+		return SendResult{ToolsExecuted: allExecs, NavigateTo: nav, HighlightTarget: hl}
 	}
 	finalText := finalResp.Choices[0].Message.Content
 	s.mu.Lock()
@@ -466,19 +630,20 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 	})
 	s.mu.Unlock()
 
-	return SendResult{Reply: finalText, ToolsExecuted: allExecs, NavigateTo: s.navFrom(allExecs)}
+	return SendResult{Reply: finalText, ToolsExecuted: allExecs, NavigateTo: nav, HighlightTarget: hl}
 }
 
-func (s *Service) navFrom(execs []ToolExecution) string {
+func (s *Service) navFrom(execs []ToolExecution) (nav string, highlight string) {
 	for _, e := range execs {
 		if e.ToolName == "navigation_open_page" {
 			if r, ok := e.Result.(map[string]interface{}); ok {
-				nav, _ := r["page"].(string)
-				return nav
+				nav, _ = r["page"].(string)
+				highlight, _ = r["highlight"].(string)
+				return
 			}
 		}
 	}
-	return ""
+	return
 }
 
 // ─── Slash command executor (fast path) ──────────────────────────────────────
@@ -562,13 +727,14 @@ func (s *Service) executeCommand(userID string, cmd *ParsedCommand) SendResult {
 		exec.Result = result
 	}
 
-	nav := ""
+	nav, hl := "", ""
 	if cmd.Tool == "navigation_open_page" {
 		if r, ok := result.(map[string]interface{}); ok {
 			nav, _ = r["page"].(string)
+			hl, _ = r["highlight"].(string)
 		}
 	}
-	return SendResult{ToolsExecuted: []ToolExecution{exec}, NavigateTo: nav}
+	return SendResult{ToolsExecuted: []ToolExecution{exec}, NavigateTo: nav, HighlightTarget: hl}
 }
 
 // ─── System prompt ────────────────────────────────────────────────────────────
@@ -585,6 +751,11 @@ func (s *Service) buildGroqSystem(userID string) string {
 	return fmt.Sprintf(
 		"Ты AI Operator в AdOps Cockpit — инструменте медиабаера Facebook.\n"+
 			"Workspace: %d кабинетов (%d READY, %d BLOCKED), %d пулов, %d креативов, %d шаблонов.\n"+
+			"Страницы: accounts=создать/просмотреть рекламные кабинеты, account-pools=группы кабинетов, "+
+			"launch=запуск рекламных кампаний (автозалив), creatives=баннеры и видео, "+
+			"autocontrol=автопауза по KPI, autoscale=автомасштабирование, "+
+			"health-checks=проверка кабинетов, audit-logs=история действий, integrations=подключение Meta API.\n"+
+			"При навигации: используй highlight чтобы указать на нужный элемент интерфейса.\n"+
 			"Всегда вызывай инструмент для получения данных — не отвечай без реальной информации.\n"+
 			"Отвечай по-русски кратко и конкретно.",
 		total, ready, blocked, poolCount, creatives, templates,

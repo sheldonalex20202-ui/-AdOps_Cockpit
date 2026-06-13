@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Loading, Empty, PageHeader, ScoreBar, Table, Td, Th, Tr, statusTone } from "@/components/ui";
 import { ru } from "@/lib/i18n";
 import * as api from "@/lib/api";
+import { useAiHighlight } from "@/lib/useAiHighlight";
 
 type Account = {
   id: string; name: string; externalId: string;
@@ -12,6 +13,7 @@ type Account = {
 };
 
 export function HealthClient() {
+  const hlRunHealth = useAiHighlight("run-health");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<Set<string>>(new Set());
@@ -63,7 +65,7 @@ export function HealthClient() {
         actions={
           <>
             <Button variant="ghost" size="sm" onClick={load}><RefreshCw size={13} /> Обновить</Button>
-            <Button size="sm" onClick={runAll} disabled={running.size > 0}>
+            <Button size="sm" onClick={runAll} disabled={running.size > 0} className={hlRunHealth ? "ai-highlight" : ""}>
               <Activity size={13} /> Проверить все
             </Button>
           </>
