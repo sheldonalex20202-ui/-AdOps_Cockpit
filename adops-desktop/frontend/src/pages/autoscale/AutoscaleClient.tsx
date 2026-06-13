@@ -267,6 +267,7 @@ function ScaleRulesSection({
   onUpdate: (id: string, input: ScaleRuleInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const hlAddScaleRule = useAiHighlight("add-scale-rule");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<RuleFormState>({ ...defaultFormState });
   const [saving, setSaving] = useState(false);
@@ -743,7 +744,6 @@ function CycleHistorySection({ cycles, onLoadDetail }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function AutoscaleClient() {
-  const hlAddScaleRule = useAiHighlight("add-scale-rule");
   const [config, setConfig] = useState<AutoscaleConfig | null>(null);
   const [rules, setRules] = useState<ScaleRule[]>([]);
   const [cycles, setCycles] = useState<Cycle[]>([]);
