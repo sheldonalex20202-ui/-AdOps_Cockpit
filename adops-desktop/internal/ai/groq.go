@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
 const (
-	groqEndpoint = "https://api.groq.com/openai/v1/chat/completions"
-	groqModel    = "llama-3.3-70b-versatile"
+	groqEndpoint      = "https://api.groq.com/openai/v1/chat/completions"
+	groqModel         = "llama-3.3-70b-versatile"
+	groqFallbackModel = "llama-3.1-8b-instant"
 )
 
 // ─── Message types (OpenAI-compatible) ───────────────────────────────────────
@@ -131,7 +133,11 @@ func callGroqVisionAnalyze(apiKey, userText, imageDataURL string) (string, error
 		return "", fmt.Errorf("ошибка ответа Groq Vision: %v", err)
 	}
 	if result.Error != nil {
-		return "", fmt.Errorf("Groq Vision: %s", result.Error.Message)
+		msg := result.Error.Message
+		if isRateLimitErr(fmt.Errorf(msg)) {
+			return "", fmt.Errorf("превышен дневной лимит токенов Groq. Попробуйте позже.")
+		}
+		return "", fmt.Errorf("Groq Vision: %s", msg)
 	}
 	if len(result.Choices) == 0 {
 		return "", fmt.Errorf("пустой ответ от Groq Vision")
@@ -139,8 +145,31 @@ func callGroqVisionAnalyze(apiKey, userText, imageDataURL string) (string, error
 	return result.Choices[0].Message.Content, nil
 }
 
-// callGroqChat sends messages + tool schemas to Groq and returns the raw response.
+func isRateLimitErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "rate limit") || strings.Contains(msg, "rate_limit")
+}
+
+// callGroqChat sends messages + tool schemas to Groq.
+// On rate-limit it retries with groqFallbackModel automatically.
 func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
+	resp, err := callGroqChatModel(apiKey, groqModel, system, messages, tools)
+	if err != nil && isRateLimitErr(err) {
+		resp, err = callGroqChatModel(apiKey, groqFallbackModel, system, messages, tools)
+		if err != nil {
+			if isRateLimitErr(err) {
+				return nil, fmt.Errorf("превышен дневной лимит токенов Groq. Попробуйте позже или добавьте свой API ключ в настройках.")
+			}
+			return nil, err
+		}
+	}
+	return resp, err
+}
+
+func callGroqChatModel(apiKey, model, system string, messages []groqMsg, tools []groqToolDef) (*groqChatResp, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("groq_key_missing")
 	}
@@ -152,7 +181,7 @@ func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef
 	full = append(full, messages...)
 
 	req := groqChatReq{
-		Model:             groqModel,
+		Model:             model,
 		Messages:          full,
 		MaxTokens:         1024,
 		ParallelToolCalls: false, // prevents malformed multi-tool JSON (failed_generation)
