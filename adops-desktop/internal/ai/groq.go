@@ -60,11 +60,12 @@ func groqToolSchemas() []groqToolDef {
 // ─── HTTP call ────────────────────────────────────────────────────────────────
 
 type groqChatReq struct {
-	Model      string        `json:"model"`
-	Messages   []groqMsg     `json:"messages"`
-	Tools      []groqToolDef `json:"tools,omitempty"`
-	ToolChoice string        `json:"tool_choice,omitempty"`
-	MaxTokens  int           `json:"max_tokens"`
+	Model              string        `json:"model"`
+	Messages           []groqMsg     `json:"messages"`
+	Tools              []groqToolDef `json:"tools,omitempty"`
+	ToolChoice         string        `json:"tool_choice,omitempty"`
+	MaxTokens          int           `json:"max_tokens"`
+	ParallelToolCalls  bool          `json:"parallel_tool_calls"`
 }
 
 type groqChatResp struct {
@@ -151,9 +152,10 @@ func callGroqChat(apiKey, system string, messages []groqMsg, tools []groqToolDef
 	full = append(full, messages...)
 
 	req := groqChatReq{
-		Model:     groqModel,
-		Messages:  full,
-		MaxTokens: 1024,
+		Model:             groqModel,
+		Messages:          full,
+		MaxTokens:         1024,
+		ParallelToolCalls: false, // prevents malformed multi-tool JSON (failed_generation)
 	}
 	if len(tools) > 0 {
 		req.Tools = tools

@@ -216,6 +216,127 @@ func (s *Service) ClearConversation(convID string) bool {
 	return true
 }
 
+// ─── Semantic tool routing ────────────────────────────────────────────────────
+
+// selectToolsForQuery returns the subset of tool schemas relevant to the user's
+// input (max ~12 tools). Sending all 30 schemas to llama-3.3-70b causes
+// "failed_generation" because the context becomes too large for reliable JSON.
+func selectToolsForQuery(input string) []groqToolDef {
+	low := strings.ToLower(input)
+	has := func(keywords ...string) bool {
+		for _, kw := range keywords {
+			if strings.Contains(low, kw) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Always include these lightweight read-only tools.
+	selected := map[string]bool{
+		"workspace_status":     true,
+		"navigation_open_page": true,
+	}
+
+	switch {
+	case has("кабинет", "account", "баер", "рекламн", "сколько", "готов", "блок", "ready", "blocked"):
+		selected["accounts_search"] = true
+		selected["accounts_explain_readiness"] = true
+		selected["health_run_bulk"] = true
+		if has("удал", "очист", "delete", "remove", "все") {
+			selected["accounts_delete"] = true
+		}
+		if has("заметк", "note", "лимит", "limit") {
+			selected["accounts_update"] = true
+		}
+
+	case has("пул", "pool", "группа", "group"):
+		selected["pools_list"] = true
+		selected["pools_create"] = true
+		selected["pools_add_accounts"] = true
+		if has("удал", "delete") {
+			selected["pools_delete"] = true
+		}
+		if has("убра", "remove", "исключ") {
+			selected["pools_remove_accounts"] = true
+		}
+		if has("переименова", "цвет", "rename", "color") {
+			selected["pools_rename"] = true
+		}
+		if has("очист", "clear") {
+			selected["pools_clear"] = true
+		}
+
+	case has("health", "проверк", "статус кабин", "диагност"):
+		selected["health_run_bulk"] = true
+		selected["accounts_search"] = true
+
+	case has("креатив", "creative", "баннер", "картинк", "изображ", "медиа"):
+		selected["creatives_list"] = true
+		if has("удал", "delete") {
+			selected["creatives_delete"] = true
+		}
+
+	case has("шаблон", "template", "кампани", "campaign"):
+		selected["templates_list"] = true
+		if has("удал", "delete") {
+			selected["templates_delete"] = true
+		}
+
+	case has("автоконтрол", "autocontrol", "контрол", "пауз", "возобнов", "cpa", "спенд"):
+		selected["autocontrol_get"] = true
+		selected["autocontrol_set"] = true
+		selected["autocontrol_run"] = true
+		selected["geo_rules_list"] = true
+		if has("правил", "гео", "rule", "geo") {
+			selected["geo_rules_upsert"] = true
+			selected["geo_rules_delete"] = true
+		}
+
+	case has("автоскейл", "autoscale", "масштаб", "клон", "scale"):
+		selected["autoscale_get"] = true
+		selected["autoscale_set"] = true
+		selected["autoscale_run"] = true
+
+	case has("гео", "geo", "правил", "rule"):
+		selected["geo_rules_list"] = true
+		selected["geo_rules_upsert"] = true
+		selected["geo_rules_delete"] = true
+		selected["autocontrol_get"] = true
+
+	case has("залив", "launch", "запуск кампан", "история"):
+		selected["launch_jobs_list"] = true
+
+	case has("лог", "аудит", "audit", "что происход", "недавн", "последн"):
+		selected["audit_recent"] = true
+
+	case has("интеграц", "подключ", "meta", "facebook", "токен", "connect"):
+		selected["connections_list"] = true
+
+	case has("удал", "очист", "сброс", "reset", "delete", "всё", "все данн", "полност"):
+		selected["data_reset"] = true
+		selected["accounts_delete"] = true
+		selected["pools_list"] = true
+		selected["creatives_list"] = true
+		selected["templates_list"] = true
+
+	default:
+		selected["accounts_search"] = true
+		selected["pools_list"] = true
+		selected["health_run_bulk"] = true
+		selected["audit_recent"] = true
+	}
+
+	all := groqToolSchemas()
+	out := make([]groqToolDef, 0, len(selected))
+	for _, t := range all {
+		if selected[t.Function.Name] {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 // ─── Groq agentic loop ────────────────────────────────────────────────────────
 
 // runGroqLoop sends input to Groq, executes any requested tools locally,
@@ -230,7 +351,9 @@ func (s *Service) runGroqLoop(userID, convID, input string) SendResult {
 	s.mu.Unlock()
 
 	system := s.buildGroqSystem(userID)
-	tools := groqToolSchemas()
+	// Semantic routing: send only the tools relevant to this query (max ~12).
+	// Sending all 30 schemas causes "failed_generation" on llama-3.3-70b.
+	tools := selectToolsForQuery(input)
 	var allExecs []ToolExecution
 
 	// Phase 1: up to 3 rounds of tool selection + execution.
@@ -461,23 +584,9 @@ func (s *Service) buildGroqSystem(userID string) string {
 
 	return fmt.Sprintf(
 		"Ты AI Operator в AdOps Cockpit — инструменте медиабаера Facebook.\n"+
-			"Workspace: %d кабинетов (%d READY, %d BLOCKED), %d пулов, %d креативов, %d шаблонов.\n\n"+
-			"Инструменты которые ты можешь вызвать:\n"+
-			"КАБИНЕТЫ: accounts_search, accounts_explain_readiness, accounts_delete (dangerous), accounts_update\n"+
-			"ПУЛЫ: pools_list, pools_create, pools_rename, pools_delete (dangerous), pools_add_accounts, pools_remove_accounts, pools_clear\n"+
-			"КРЕАТИВЫ: creatives_list, creatives_delete (dangerous)\n"+
-			"ШАБЛОНЫ: templates_list, templates_delete (dangerous)\n"+
-			"АВТОЗАЛИВ: launch_jobs_list\n"+
-			"АВТОКОНТРОЛЬ: autocontrol_get, autocontrol_set, autocontrol_run, geo_rules_list, geo_rules_upsert, geo_rules_delete\n"+
-			"АВТОСКЕЙЛ: autoscale_get, autoscale_set, autoscale_run\n"+
-			"ИНТЕГРАЦИИ: connections_list\n"+
-			"ЗДОРОВЬЕ: health_run_bulk\n"+
-			"СБРОС: data_reset (scope: accounts|pools|creatives|templates|launch_jobs|all) — DANGEROUS\n"+
-			"ПРОЧЕЕ: workspace_status, audit_recent, navigation_open_page\n\n"+
-			"Правила:\n"+
-			"- Всегда вызывай нужный инструмент — не отвечай без реальных данных.\n"+
-			"- Для опасных операций (delete/reset) всегда уточни масштаб через инструмент.\n"+
-			"- Отвечай по-русски кратко и конкретно.",
+			"Workspace: %d кабинетов (%d READY, %d BLOCKED), %d пулов, %d креативов, %d шаблонов.\n"+
+			"Всегда вызывай инструмент для получения данных — не отвечай без реальной информации.\n"+
+			"Отвечай по-русски кратко и конкретно.",
 		total, ready, blocked, poolCount, creatives, templates,
 	)
 }
